@@ -1,0 +1,144 @@
+package wn.gateway.feishu;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.DeploymentException;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.MessageHandler;
+import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
+import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.domain.InboundMessage;
+
+public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
+    private final GatewayAppConfig config;
+    private final HttpClient httpClient;
+    private final ObjectMapper mapper;
+    private volatile Session session;
+
+    public QuarkusFeishuGatewayClient(GatewayAppConfig config, ObjectMapper mapper) {
+        this.config = Objects.requireNonNull(config);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.httpClient = HttpClient.newHttpClient();
+    }
+
+    @Override
+    public void start(Consumer<InboundMessage> messageConsumer) {
+        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+        ClientEndpointConfig endpointConfig = ClientEndpointConfig.Builder.create()
+                .configurator(new HeaderConfigurator(config))
+                .build();
+        try {
+            session = container.connectToServer(new FeishuEndpoint(messageConsumer), endpointConfig, URI.create(config.feishuWebsocketUrl()));
+        } catch (DeploymentException | IOException e) {
+            throw new IllegalStateException("failed to connect to feishu websocket", e);
+        }
+    }
+
+    @Override
+    public CompletableFuture<Void> sendReply(InboundMessage message, String answer) {
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("messageId", message.messageId());
+        payload.put("chatId", message.chatId());
+        payload.put("userId", message.userId());
+        payload.put("text", answer);
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(config.feishuReplyUrl()))
+                .header("Content-Type", "application/json")
+                .header("X-Feishu-App-Id", config.feishuAppId())
+                .header("X-Feishu-App-Secret", config.feishuAppSecret())
+                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                .build();
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.discarding()).thenApply(ignored -> null);
+    }
+
+    @Override
+    public boolean isConnected() {
+        return session != null && session.isOpen();
+    }
+
+    @Override
+    public void close() throws IOException {
+        Session current = session;
+        if (current != null && current.isOpen()) {
+            current.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "shutdown"));
+        }
+    }
+
+    private InboundMessage parseMessage(String payload) throws IOException {
+        JsonNode root = mapper.readTree(payload);
+        String userId = root.at("/event/sender/sender_id/open_id").asText(root.at("/sender/id").asText());
+        String chatId = root.at("/event/message/chat_id").asText(root.at("/chat/id").asText());
+        String messageId = root.at("/event/message/message_id").asText(root.at("/message/id").asText());
+        String text = root.at("/event/message/content/text").asText(root.at("/message/text").asText());
+        long epochMillis = root.at("/header/create_time").asLong(root.path("timestamp").asLong(System.currentTimeMillis()));
+        return new InboundMessage(userId, chatId, messageId, text, Instant.ofEpochMilli(epochMillis));
+    }
+
+    private final class FeishuEndpoint extends Endpoint {
+        private final Consumer<InboundMessage> messageConsumer;
+        private final StringBuilder buffer = new StringBuilder();
+
+        private FeishuEndpoint(Consumer<InboundMessage> messageConsumer) {
+            this.messageConsumer = messageConsumer;
+        }
+
+        @Override
+        public void onOpen(Session session, EndpointConfig config) {
+            session.addMessageHandler(String.class, (MessageHandler.Partial<String>) (message, last) -> {
+                buffer.append(message);
+                if (last) {
+                    try {
+                        messageConsumer.accept(parseMessage(buffer.toString()));
+                    } catch (IOException e) {
+                        throw new IllegalStateException("failed to parse feishu event", e);
+                    } finally {
+                        buffer.setLength(0);
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onClose(Session session, CloseReason closeReason) {
+            QuarkusFeishuGatewayClient.this.session = null;
+        }
+
+        @Override
+        public void onError(Session session, Throwable thr) {
+            throw new IllegalStateException("feishu websocket error", thr);
+        }
+    }
+
+    private static final class HeaderConfigurator extends ClientEndpointConfig.Configurator {
+        private final GatewayAppConfig config;
+
+        private HeaderConfigurator(GatewayAppConfig config) {
+            this.config = config;
+        }
+
+        @Override
+        public void beforeRequest(Map<String, List<String>> headers) {
+            headers.put("X-Feishu-App-Id", List.of(config.feishuAppId()));
+            headers.put("X-Feishu-App-Secret", List.of(config.feishuAppSecret()));
+        }
+    }
+}
