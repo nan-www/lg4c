@@ -15,17 +15,20 @@
 ##  Gateway Lifecycle
 > 它需要作为一个守护进程运行在系统上。e.g. Mac os: caffeinate ${process}
 
-### Before Start
+### Start
 
-校验本地是否存在 codex,如果没有打印错误日志到控制台并退出。
+你需要参考这个项目中给定的[顺序图](lg4c.puml)
 
-### After Start
-1. 与飞书 server 建立 websocket 链接。如果失败重试 3 次后报错退出
-2. 与本地的 codex MCP server 建连（初版先考虑只启动一个 codex）
-3. 如果没有则需要用户给一个文件路径来作为 codex MCP server 的根目录
-4. 通过shell拉起 codex MCP server 并链接
+codex 是运行在本机的进程。它只能在用户指定的目录下运行——通常是一个代码仓库的根目录。
+且 codex 不能被授予完全访问权限。
+### Work 
 
-### 
+你需要参考这个项目中给定的[顺序图](lg4c_work.puml)
+
+lg4c 初版需要支持对话记录的功能。写文件的时候尽可能的通过索引、NIO 等手段来提升性能。
+
+
+
 
 
 
