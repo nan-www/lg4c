@@ -25,6 +25,7 @@ import wn.gateway.session.InMemoryPendingMessageStore;
 import wn.gateway.session.PendingMessage;
 import wn.gateway.session.SerialConversationDispatcher;
 import wn.gateway.session.SessionSnapshot;
+import wn.gateway.util.VTFactory;
 
 @ApplicationScoped
 public class GatewayDaemonService {
@@ -34,13 +35,17 @@ public class GatewayDaemonService {
     @Inject
     FeishuGatewayClientFactory feishuGatewayClientFactory;
 
+    @Inject
+    VTFactory vtFactory;
+
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
         AccessPolicy accessPolicy = new AccessPolicy(config);
         FileSessionStateStore stateStore = new FileSessionStateStore(config.recordRoot().getParent().resolve("../state/sessions.json").normalize(), mapper);
         ConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
         InMemoryPendingMessageStore pendingStore = new InMemoryPendingMessageStore();
-        SerialConversationDispatcher dispatcher = new SerialConversationDispatcher();
+        SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
+                vtFactory.newVirtualThreadExecutor("conversation-dispatch"));
         StdioCodexProcessSupervisor supervisor = new StdioCodexProcessSupervisor(config.codexCommand(), config.workspaceRoot());
         ManagedCodexSessionManager sessionManager = new ManagedCodexSessionManager(supervisor, new StdioCodexTransport(supervisor, mapper), pendingStore);
         FeishuGatewayClient feishuClient = feishuGatewayClientFactory.create(config);

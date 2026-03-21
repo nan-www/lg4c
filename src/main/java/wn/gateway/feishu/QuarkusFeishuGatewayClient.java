@@ -1,12 +1,13 @@
 package wn.gateway.feishu;
 
 import java.io.IOException;
-import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,13 +15,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.CloseReason;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.MessageHandler;
 import jakarta.websocket.Session;
-import jakarta.websocket.WebSocketContainer;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 
@@ -28,23 +26,31 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
     private final FeishuReplyApi replyApi;
+    private final FeishuWebSocketConnector webSocketConnector;
+    private final ExecutorService networkExecutor;
     private volatile Session session;
 
-    public QuarkusFeishuGatewayClient(GatewayAppConfig config, ObjectMapper mapper, FeishuReplyApi replyApi) {
+    public QuarkusFeishuGatewayClient(
+            GatewayAppConfig config,
+            ObjectMapper mapper,
+            FeishuReplyApi replyApi,
+            FeishuWebSocketConnector webSocketConnector,
+            ExecutorService networkExecutor) {
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
         this.replyApi = Objects.requireNonNull(replyApi);
+        this.webSocketConnector = Objects.requireNonNull(webSocketConnector);
+        this.networkExecutor = Objects.requireNonNull(networkExecutor);
     }
 
     @Override
     public void start(Consumer<InboundMessage> messageConsumer) {
-        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         ClientEndpointConfig endpointConfig = ClientEndpointConfig.Builder.create()
                 .configurator(new HeaderConfigurator(config))
                 .build();
         try {
-            session = container.connectToServer(new FeishuEndpoint(messageConsumer), endpointConfig, URI.create(config.feishuWebsocketUrl()));
-        } catch (DeploymentException | IOException e) {
+            session = runOnVirtualThread(() -> webSocketConnector.connect(config, new FeishuEndpoint(messageConsumer), endpointConfig));
+        } catch (IOException e) {
             throw new IllegalStateException("failed to connect to feishu websocket", e);
         }
     }
@@ -56,8 +62,11 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
                 message.chatId(),
                 message.userId(),
                 answer);
-        return replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload)
-                .toCompletableFuture();
+        return CompletableFuture.runAsync(
+                () -> replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload)
+                        .toCompletableFuture()
+                        .join(),
+                networkExecutor);
     }
 
     @Override
@@ -67,9 +76,31 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
 
     @Override
     public void close() throws IOException {
-        Session current = session;
-        if (current != null && current.isOpen()) {
-            current.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "shutdown"));
+        try {
+            Session current = session;
+            if (current != null && current.isOpen()) {
+                current.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "shutdown"));
+            }
+        } finally {
+            networkExecutor.shutdownNow();
+        }
+    }
+
+    private <T> T runOnVirtualThread(IoCallable<T> operation) throws IOException {
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return operation.call();
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            }, networkExecutor).join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new IllegalStateException("virtual-thread network operation failed", cause);
         }
     }
 
@@ -130,5 +161,10 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
             headers.put("X-Feishu-App-Id", List.of(config.feishuAppId()));
             headers.put("X-Feishu-App-Secret", List.of(config.feishuAppSecret()));
         }
+    }
+
+    @FunctionalInterface
+    private interface IoCallable<T> {
+        T call() throws Exception;
     }
 }

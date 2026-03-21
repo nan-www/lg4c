@@ -9,16 +9,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 
 import wn.gateway.domain.ConversationKey;
+import wn.gateway.util.VTFactory;
 
 class SerialConversationDispatcherTest {
 
     @Test
     void dispatchesMessagesSeriallyWithinSameConversationAndConcurrentlyAcrossDifferentOnes() throws Exception {
-        SerialConversationDispatcher dispatcher = new SerialConversationDispatcher();
+        SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
+                new VTFactory().newVirtualThreadExecutor("dispatcher-test"));
         List<String> executionOrder = new CopyOnWriteArrayList<>();
         ConversationKey sameKey = new ConversationKey("u1", "c1");
         ConversationKey otherKey = new ConversationKey("u2", "c2");
@@ -47,6 +50,19 @@ class SerialConversationDispatcherTest {
         CompletableFuture.allOf(first, second, other).get(2, TimeUnit.SECONDS);
         assertEquals(List.of("first-start", "other", "first-end", "second"), executionOrder);
 
+        dispatcher.close(Duration.ofSeconds(1));
+    }
+
+    @Test
+    void dispatchRunsTasksOnVirtualThreads() throws Exception {
+        SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
+                new VTFactory().newVirtualThreadExecutor("dispatcher-vt-check"));
+        AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
+
+        dispatcher.dispatch(new ConversationKey("u1", "c1"), () -> ranOnVirtualThread.set(Thread.currentThread().isVirtual()))
+                .get(2, TimeUnit.SECONDS);
+
+        assertTrue(ranOnVirtualThread.get());
         dispatcher.close(Duration.ofSeconds(1));
     }
 
