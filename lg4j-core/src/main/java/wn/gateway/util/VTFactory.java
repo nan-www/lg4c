@@ -2,26 +2,23 @@ package wn.gateway.util;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import io.quarkus.virtual.threads.VirtualThreads;
+public final class VTFactory {
 
-@ApplicationScoped
-public class VTFactory {
-    @Inject
-    @VirtualThreads
-    ExecutorService virtualThreadsExecutor;
-
-    public VTFactory() {
+    private VTFactory() {
     }
 
-    VTFactory(ExecutorService virtualThreadsExecutor) {
-        this.virtualThreadsExecutor = Objects.requireNonNull(virtualThreadsExecutor);
+    public static ExecutorService newVirtualThreadExecutor(String purpose) {
+        String normalizedPurpose = normalizePurpose(purpose);
+        return Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name(normalizedPurpose + "-", 0).factory());
     }
 
-    public ExecutorService newVirtualThreadExecutor(String purpose) {
-        Objects.requireNonNullElse(purpose, "worker");
-        return Objects.requireNonNull(virtualThreadsExecutor, "Quarkus virtual thread executor is not available");
+    private static String normalizePurpose(String purpose) {
+        String value = Objects.requireNonNullElse(purpose, "worker")
+                .trim()
+                .replaceAll("[^a-zA-Z0-9]+", "-");
+        return value.isBlank() ? "worker" : value;
     }
 }

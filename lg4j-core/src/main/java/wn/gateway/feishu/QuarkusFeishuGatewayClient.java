@@ -11,18 +11,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.websocket.*;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
-@AllArgsConstructor
-@RequiredArgsConstructor
+
 public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
     private final FeishuReplyApi replyApi;
     private final FeishuWebSocketConnector webSocketConnector;
     private volatile Session session;
+
+    public QuarkusFeishuGatewayClient(
+            GatewayAppConfig config,
+            ObjectMapper mapper,
+            FeishuReplyApi replyApi,
+            FeishuWebSocketConnector webSocketConnector) {
+        this.config = config;
+        this.mapper = mapper;
+        this.replyApi = replyApi;
+        this.webSocketConnector = webSocketConnector;
+    }
 
     @Override
     public void start(Consumer<InboundMessage> messageConsumer) {
@@ -31,7 +39,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
                 .build();
         try {
             session = webSocketConnector.connect(config, new FeishuEndpoint(messageConsumer), endpointConfig);
-        } catch (Exception e) {
+        } catch (DeploymentException | IOException e) {
             throw new IllegalStateException("failed to connect to feishu websocket", e);
         }
     }
@@ -43,8 +51,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
                 message.chatId(),
                 message.userId(),
                 answer);
-        return replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload)
-                .toCompletableFuture();
+        return replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload).toCompletableFuture();
     }
 
     @Override

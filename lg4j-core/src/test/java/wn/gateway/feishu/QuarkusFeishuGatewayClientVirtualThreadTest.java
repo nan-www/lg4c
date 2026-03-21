@@ -1,14 +1,11 @@
 package wn.gateway.feishu;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
@@ -20,11 +17,13 @@ import wn.gateway.domain.InboundMessage;
 class QuarkusFeishuGatewayClientVirtualThreadTest {
 
     @Test
-    void sendReplyRunsOnVirtualThread() throws Exception {
-        AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
+    void sendReplyDelegatesOnCallerThreadAndReturnsUnderlyingFuture() {
+        Thread callerThread = Thread.currentThread();
+        AtomicReference<Thread> apiThread = new AtomicReference<>();
+        CompletableFuture<Void> replyFuture = new CompletableFuture<>();
         FeishuReplyApi replyApi = (appId, appSecret, request) -> {
-            ranOnVirtualThread.set(Thread.currentThread().isVirtual());
-            return CompletableFuture.completedFuture(null);
+            apiThread.set(Thread.currentThread());
+            return replyFuture;
         };
         FeishuWebSocketConnector connector = (config, endpoint, endpointConfig) -> null;
         QuarkusFeishuGatewayClient client = new QuarkusFeishuGatewayClient(
@@ -33,18 +32,19 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
                 replyApi,
                 connector);
 
-        client.sendReply(message(), "ok").get(2, TimeUnit.SECONDS);
+        CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
-        assertTrue(ranOnVirtualThread.get());
-        client.close();
+        assertSame(callerThread, apiThread.get());
+        assertSame(replyFuture, returned);
     }
 
     @Test
-    void websocketConnectRunsOnVirtualThread() throws Exception {
-        AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
+    void websocketConnectRunsOnCallerThread() throws Exception {
+        Thread callerThread = Thread.currentThread();
+        AtomicReference<Thread> connectThread = new AtomicReference<>();
         FeishuReplyApi replyApi = (appId, appSecret, request) -> CompletableFuture.completedFuture(null);
         FeishuWebSocketConnector connector = (config, endpoint, endpointConfig) -> {
-            ranOnVirtualThread.set(Thread.currentThread().isVirtual());
+            connectThread.set(Thread.currentThread());
             return null;
         };
         QuarkusFeishuGatewayClient client = new QuarkusFeishuGatewayClient(
@@ -56,7 +56,7 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
         client.start(message -> {
         });
 
-        assertTrue(ranOnVirtualThread.get());
+        assertSame(callerThread, connectThread.get());
         client.close();
     }
 
