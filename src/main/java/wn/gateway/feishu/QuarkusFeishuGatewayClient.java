@@ -28,6 +28,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
     private final FeishuReplyApi replyApi;
     private final FeishuWebSocketConnector webSocketConnector;
     private final ExecutorService networkExecutor;
+    private final boolean managesExecutor;
     private volatile Session session;
 
     public QuarkusFeishuGatewayClient(
@@ -36,11 +37,22 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
             FeishuReplyApi replyApi,
             FeishuWebSocketConnector webSocketConnector,
             ExecutorService networkExecutor) {
+        this(config, mapper, replyApi, webSocketConnector, networkExecutor, true);
+    }
+
+    public QuarkusFeishuGatewayClient(
+            GatewayAppConfig config,
+            ObjectMapper mapper,
+            FeishuReplyApi replyApi,
+            FeishuWebSocketConnector webSocketConnector,
+            ExecutorService networkExecutor,
+            boolean managesExecutor) {
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
         this.replyApi = Objects.requireNonNull(replyApi);
         this.webSocketConnector = Objects.requireNonNull(webSocketConnector);
         this.networkExecutor = Objects.requireNonNull(networkExecutor);
+        this.managesExecutor = managesExecutor;
     }
 
     @Override
@@ -82,7 +94,9 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
                 current.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "shutdown"));
             }
         } finally {
-            networkExecutor.shutdownNow();
+            if (managesExecutor) {
+                networkExecutor.shutdownNow();
+            }
         }
     }
 

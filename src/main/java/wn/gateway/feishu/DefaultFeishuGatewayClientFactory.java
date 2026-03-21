@@ -25,6 +25,7 @@ public class DefaultFeishuGatewayClientFactory implements FeishuGatewayClientFac
                 mapper,
                 replyApiFactory.create(config),
                 webSocketConnector,
-                vtFactory.newVirtualThreadExecutor("feishu-network"));
+                vtFactory.newVirtualThreadExecutor("feishu-network"),
+                false);
     }
 }

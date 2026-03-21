@@ -5,21 +5,28 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import wn.gateway.domain.ConversationKey;
-import wn.gateway.util.VTFactory;
 
 public class SerialConversationDispatcher implements AutoCloseable {
     private final ExecutorService executor;
+    private final boolean managesExecutor;
     private final Map<String, CompletableFuture<Void>> tails = new ConcurrentHashMap<>();
 
     public SerialConversationDispatcher() {
-        this(new VTFactory().newVirtualThreadExecutor("conversation-dispatch"));
+        this(Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("lg4c-conversation-dispatch-", 0).factory()), true);
     }
 
     public SerialConversationDispatcher(ExecutorService executor) {
+        this(executor, true);
+    }
+
+    public SerialConversationDispatcher(ExecutorService executor, boolean managesExecutor) {
         this.executor = executor;
+        this.managesExecutor = managesExecutor;
     }
 
     public CompletableFuture<Void> dispatch(ConversationKey key, Runnable task) {
@@ -34,12 +41,32 @@ public class SerialConversationDispatcher implements AutoCloseable {
     }
 
     public void close(Duration timeout) throws InterruptedException {
-        executor.shutdown();
-        executor.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (managesExecutor) {
+            executor.shutdown();
+            executor.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            return;
+        }
+        awaitOutstandingTasks(timeout);
     }
 
     @Override
     public void close() {
-        executor.shutdownNow();
+        if (managesExecutor) {
+            executor.shutdownNow();
+        }
+    }
+
+    private void awaitOutstandingTasks(Duration timeout) throws InterruptedException {
+        CompletableFuture<?>[] inFlight = tails.values().toArray(CompletableFuture[]::new);
+        if (inFlight.length == 0) {
+            return;
+        }
+        try {
+            CompletableFuture.allOf(inFlight).get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ignored) {
+            // best effort wait only
+        } catch (java.util.concurrent.ExecutionException ignored) {
+            // individual task failures are handled by the caller chain
+        }
     }
 }

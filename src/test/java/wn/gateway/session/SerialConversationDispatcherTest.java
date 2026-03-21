@@ -8,20 +8,20 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 
 import wn.gateway.domain.ConversationKey;
-import wn.gateway.util.VTFactory;
 
 class SerialConversationDispatcherTest {
 
     @Test
     void dispatchesMessagesSeriallyWithinSameConversationAndConcurrentlyAcrossDifferentOnes() throws Exception {
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
-                new VTFactory().newVirtualThreadExecutor("dispatcher-test"));
+                Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("dispatcher-test-", 0).factory()));
         List<String> executionOrder = new CopyOnWriteArrayList<>();
         ConversationKey sameKey = new ConversationKey("u1", "c1");
         ConversationKey otherKey = new ConversationKey("u2", "c2");
@@ -56,7 +56,7 @@ class SerialConversationDispatcherTest {
     @Test
     void dispatchRunsTasksOnVirtualThreads() throws Exception {
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
-                new VTFactory().newVirtualThreadExecutor("dispatcher-vt-check"));
+                Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("dispatcher-vt-check-", 0).factory()));
         AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
 
         dispatcher.dispatch(new ConversationKey("u1", "c1"), () -> ranOnVirtualThread.set(Thread.currentThread().isVirtual()))

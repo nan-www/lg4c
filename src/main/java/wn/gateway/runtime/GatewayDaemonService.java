@@ -45,7 +45,8 @@ public class GatewayDaemonService {
         ConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
         InMemoryPendingMessageStore pendingStore = new InMemoryPendingMessageStore();
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
-                vtFactory.newVirtualThreadExecutor("conversation-dispatch"));
+                vtFactory.newVirtualThreadExecutor("conversation-dispatch"),
+                false);
         StdioCodexProcessSupervisor supervisor = new StdioCodexProcessSupervisor(config.codexCommand(), config.workspaceRoot());
         ManagedCodexSessionManager sessionManager = new ManagedCodexSessionManager(supervisor, new StdioCodexTransport(supervisor, mapper), pendingStore);
         FeishuGatewayClient feishuClient = feishuGatewayClientFactory.create(config);
