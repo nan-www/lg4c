@@ -22,7 +22,6 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
     @Test
     void sendReplyRunsOnVirtualThread() throws Exception {
         AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
-        ExecutorService executor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("feishu-reply-test-", 0).factory());
         FeishuReplyApi replyApi = (appId, appSecret, request) -> {
             ranOnVirtualThread.set(Thread.currentThread().isVirtual());
             return CompletableFuture.completedFuture(null);
@@ -32,8 +31,7 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                connector,
-                executor);
+                connector);
 
         client.sendReply(message(), "ok").get(2, TimeUnit.SECONDS);
 
@@ -44,7 +42,6 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
     @Test
     void websocketConnectRunsOnVirtualThread() throws Exception {
         AtomicBoolean ranOnVirtualThread = new AtomicBoolean();
-        ExecutorService executor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("feishu-connect-test-", 0).factory());
         FeishuReplyApi replyApi = (appId, appSecret, request) -> CompletableFuture.completedFuture(null);
         FeishuWebSocketConnector connector = (config, endpoint, endpointConfig) -> {
             ranOnVirtualThread.set(Thread.currentThread().isVirtual());
@@ -54,8 +51,7 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                connector,
-                executor);
+                connector);
 
         client.start(message -> {
         });

@@ -9,8 +9,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import lombok.RequiredArgsConstructor;
 import wn.gateway.domain.ConversationKey;
 
+@RequiredArgsConstructor
 public class SerialConversationDispatcher implements AutoCloseable {
     private final ExecutorService executor;
     private final boolean managesExecutor;
@@ -22,11 +24,6 @@ public class SerialConversationDispatcher implements AutoCloseable {
 
     public SerialConversationDispatcher(ExecutorService executor) {
         this(executor, true);
-    }
-
-    public SerialConversationDispatcher(ExecutorService executor, boolean managesExecutor) {
-        this.executor = executor;
-        this.managesExecutor = managesExecutor;
     }
 
     public CompletableFuture<Void> dispatch(ConversationKey key, Runnable task) {
