@@ -10,9 +10,11 @@ import wn.gateway.config.GatewayAppConfig;
 public class DefaultFeishuGatewayClientFactory implements FeishuGatewayClientFactory {
     @Inject
     ObjectMapper mapper;
+    @Inject
+    FeishuReplyApiFactory replyApiFactory;
 
     @Override
     public FeishuGatewayClient create(GatewayAppConfig config) {
-        return new QuarkusFeishuGatewayClient(config, mapper);
+        return new QuarkusFeishuGatewayClient(config, mapper, replyApiFactory.create(config));
     }
 }

@@ -2,9 +2,6 @@ package wn.gateway.feishu;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +11,6 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.CloseReason;
@@ -30,14 +26,14 @@ import wn.gateway.domain.InboundMessage;
 
 public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
     private final GatewayAppConfig config;
-    private final HttpClient httpClient;
     private final ObjectMapper mapper;
+    private final FeishuReplyApi replyApi;
     private volatile Session session;
 
-    public QuarkusFeishuGatewayClient(GatewayAppConfig config, ObjectMapper mapper) {
+    public QuarkusFeishuGatewayClient(GatewayAppConfig config, ObjectMapper mapper, FeishuReplyApi replyApi) {
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
-        this.httpClient = HttpClient.newHttpClient();
+        this.replyApi = Objects.requireNonNull(replyApi);
     }
 
     @Override
@@ -55,19 +51,13 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
 
     @Override
     public CompletableFuture<Void> sendReply(InboundMessage message, String answer) {
-        ObjectNode payload = mapper.createObjectNode();
-        payload.put("messageId", message.messageId());
-        payload.put("chatId", message.chatId());
-        payload.put("userId", message.userId());
-        payload.put("text", answer);
-
-        HttpRequest request = HttpRequest.newBuilder(URI.create(config.feishuReplyUrl()))
-                .header("Content-Type", "application/json")
-                .header("X-Feishu-App-Id", config.feishuAppId())
-                .header("X-Feishu-App-Secret", config.feishuAppSecret())
-                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
-                .build();
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.discarding()).thenApply(ignored -> null);
+        FeishuReplyRequest payload = new FeishuReplyRequest(
+                message.messageId(),
+                message.chatId(),
+                message.userId(),
+                answer);
+        return replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload)
+                .toCompletableFuture();
     }
 
     @Override
