@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -10,22 +10,27 @@ import java.util.function.Consumer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.websocket.*;
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.DeploymentException;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.Session;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 
-public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
+public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
-    private final FeishuReplyApi replyApi;
-    private final FeishuWebSocketConnector webSocketConnector;
+    private final LarkReplyApi replyApi;
+    private final LarkWebSocketConnector webSocketConnector;
     private volatile Session session;
 
-    public QuarkusFeishuGatewayClient(
+    public QuarkusLarkGatewayClient(
             GatewayAppConfig config,
             ObjectMapper mapper,
-            FeishuReplyApi replyApi,
-            FeishuWebSocketConnector webSocketConnector) {
+            LarkReplyApi replyApi,
+            LarkWebSocketConnector webSocketConnector) {
         this.config = config;
         this.mapper = mapper;
         this.replyApi = replyApi;
@@ -38,7 +43,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
                 .configurator(new HeaderConfigurator(config))
                 .build();
         try {
-            session = webSocketConnector.connect(config, new FeishuEndpoint(messageConsumer), endpointConfig);
+            session = webSocketConnector.connect(config, new LarkEndpoint(messageConsumer), endpointConfig);
         } catch (DeploymentException | IOException e) {
             throw new IllegalStateException("failed to connect to feishu websocket", e);
         }
@@ -46,7 +51,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
 
     @Override
     public CompletableFuture<Void> sendReply(InboundMessage message, String answer) {
-        FeishuReplyRequest payload = new FeishuReplyRequest(
+        LarkReplyRequest payload = new LarkReplyRequest(
                 message.messageId(),
                 message.chatId(),
                 message.userId(),
@@ -77,11 +82,11 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
         return new InboundMessage(userId, chatId, messageId, text, Instant.ofEpochMilli(epochMillis));
     }
 
-    private final class FeishuEndpoint extends Endpoint {
+    private final class LarkEndpoint extends Endpoint {
         private final Consumer<InboundMessage> messageConsumer;
         private final StringBuilder buffer = new StringBuilder();
 
-        private FeishuEndpoint(Consumer<InboundMessage> messageConsumer) {
+        private LarkEndpoint(Consumer<InboundMessage> messageConsumer) {
             this.messageConsumer = messageConsumer;
         }
 
@@ -103,7 +108,7 @@ public class QuarkusFeishuGatewayClient implements FeishuGatewayClient {
 
         @Override
         public void onClose(Session session, CloseReason closeReason) {
-            QuarkusFeishuGatewayClient.this.session = null;
+            QuarkusLarkGatewayClient.this.session = null;
         }
 
         @Override

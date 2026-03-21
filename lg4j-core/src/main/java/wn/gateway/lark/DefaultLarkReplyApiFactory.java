@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import java.net.URI;
 
@@ -7,12 +7,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultFeishuReplyApiFactory implements FeishuReplyApiFactory {
+public class DefaultLarkReplyApiFactory implements LarkReplyApiFactory {
 
     @Override
-    public FeishuReplyApi create(GatewayAppConfig config) {
+    public LarkReplyApi create(GatewayAppConfig config) {
         return QuarkusRestClientBuilder.newBuilder()
                 .baseUri(URI.create(config.feishuReplyUrl()))
-                .build(FeishuReplyApi.class);
+                .build(LarkReplyApi.class);
     }
 }

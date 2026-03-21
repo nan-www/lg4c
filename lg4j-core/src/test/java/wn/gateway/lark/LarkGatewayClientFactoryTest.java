@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,10 +13,10 @@ import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 
 @QuarkusTest
-class FeishuGatewayClientFactoryTest {
+class LarkGatewayClientFactoryTest {
 
     @Inject
-    FeishuGatewayClientFactory factory;
+    LarkGatewayClientFactory factory;
 
     @Test
     void factoryCreatesQuarkusWebSocketClient() {
@@ -34,9 +34,9 @@ class FeishuGatewayClientFactoryTest {
                 .loggingLevel("INFO")
                 .build();
 
-        FeishuGatewayClient client = factory.create(config);
+        LarkGatewayClient client = factory.create(config);
 
         assertNotNull(client);
-        assertInstanceOf(QuarkusFeishuGatewayClient.class, client);
+        assertInstanceOf(QuarkusLarkGatewayClient.class, client);
     }
 }

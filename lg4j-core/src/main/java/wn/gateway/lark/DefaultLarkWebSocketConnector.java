@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,7 +13,7 @@ import jakarta.websocket.WebSocketContainer;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultFeishuWebSocketConnector implements FeishuWebSocketConnector {
+public class DefaultLarkWebSocketConnector implements LarkWebSocketConnector {
 
     @Override
     public Session connect(GatewayAppConfig config, Endpoint endpoint, ClientEndpointConfig endpointConfig)

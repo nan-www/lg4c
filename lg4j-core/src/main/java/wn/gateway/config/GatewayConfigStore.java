@@ -72,7 +72,7 @@ public class GatewayConfigStore {
             document.gateway.record.root = config.recordRoot().toString();
             document.gateway.agent = new AgentDocument();
             document.gateway.agent.template = config.agentTemplate();
-            document.gateway.feishu = new FeishuDocument();
+            document.gateway.feishu = new LarkDocument();
             document.gateway.feishu.appId = config.feishuAppId();
             document.gateway.feishu.appSecret = config.feishuAppSecret();
             document.gateway.feishu.websocketUrl = config.feishuWebsocketUrl();
@@ -92,7 +92,7 @@ public class GatewayConfigStore {
         public WorkspaceDocument workspace;
         public RecordDocument record;
         public AgentDocument agent;
-        public FeishuDocument feishu;
+        public LarkDocument feishu;
         public AccessDocument access;
         public LoggingDocument logging;
     }
@@ -118,7 +118,7 @@ public class GatewayConfigStore {
     }
 
     @SuppressWarnings("unused")
-    static final class FeishuDocument {
+    static final class LarkDocument {
         public String appId;
         public String appSecret;
         public String websocketUrl;

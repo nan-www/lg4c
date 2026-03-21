@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -7,17 +7,17 @@ import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultFeishuGatewayClientFactory implements FeishuGatewayClientFactory {
+public class DefaultLarkGatewayClientFactory implements LarkGatewayClientFactory {
     @Inject
     ObjectMapper mapper;
     @Inject
-    FeishuReplyApiFactory replyApiFactory;
+    LarkReplyApiFactory replyApiFactory;
     @Inject
-    FeishuWebSocketConnector webSocketConnector;
+    LarkWebSocketConnector webSocketConnector;
 
     @Override
-    public FeishuGatewayClient create(GatewayAppConfig config) {
-        return new QuarkusFeishuGatewayClient(
+    public LarkGatewayClient create(GatewayAppConfig config) {
+        return new QuarkusLarkGatewayClient(
                 config,
                 mapper,
                 replyApiFactory.create(config),

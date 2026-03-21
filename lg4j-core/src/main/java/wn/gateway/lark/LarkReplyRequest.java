@@ -1,6 +1,6 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
-public record FeishuReplyRequest(
+public record LarkReplyRequest(
         String messageId,
         String chatId,
         String userId,

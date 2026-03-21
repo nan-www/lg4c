@@ -16,8 +16,8 @@ import wn.gateway.domain.ConversationEvent;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.domain.MessageState;
-import wn.gateway.feishu.FeishuGatewayClient;
-import wn.gateway.feishu.FeishuGatewayClientFactory;
+import wn.gateway.lark.LarkGatewayClient;
+import wn.gateway.lark.LarkGatewayClientFactory;
 import wn.gateway.record.ConversationRecorder;
 import wn.gateway.record.FileConversationRecorder;
 import wn.gateway.session.FileSessionStateStore;
@@ -33,7 +33,7 @@ public class GatewayDaemonService {
     ObjectMapper mapper;
 
     @Inject
-    FeishuGatewayClientFactory feishuGatewayClientFactory;
+    LarkGatewayClientFactory larkGatewayClientFactory;
 
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
@@ -46,12 +46,12 @@ public class GatewayDaemonService {
                 false);
         StdioCodexProcessSupervisor supervisor = new StdioCodexProcessSupervisor(config.codexCommand(), config.workspaceRoot());
         ManagedCodexSessionManager sessionManager = new ManagedCodexSessionManager(supervisor, new StdioCodexTransport(supervisor, mapper), pendingStore);
-        FeishuGatewayClient feishuClient = feishuGatewayClientFactory.create(config);
+        LarkGatewayClient larkClient = larkGatewayClientFactory.create(config);
 
         try {
             supervisor.ensureStarted();
-            feishuClient.start(message -> handleMessage(message, accessPolicy, recorder, dispatcher, pendingStore, sessionManager, feishuClient));
-            GatewayRuntimeState.markReady(supervisor.isAlive() && feishuClient.isConnected());
+            larkClient.start(message -> handleMessage(message, accessPolicy, recorder, dispatcher, pendingStore, sessionManager, larkClient));
+            GatewayRuntimeState.markReady(supervisor.isAlive() && larkClient.isConnected());
             Thread.currentThread().join();
         } catch (Exception e) {
             GatewayRuntimeState.markReady(false);
@@ -59,7 +59,7 @@ public class GatewayDaemonService {
         } finally {
             dispatcher.close();
             try {
-                feishuClient.close();
+                larkClient.close();
             } catch (IOException ignored) {
                 // best effort shutdown
             }
@@ -73,9 +73,9 @@ public class GatewayDaemonService {
             SerialConversationDispatcher dispatcher,
             InMemoryPendingMessageStore pendingStore,
             ManagedCodexSessionManager sessionManager,
-            FeishuGatewayClient feishuClient) {
+            LarkGatewayClient larkClient) {
         if (!accessPolicy.isAllowed(message)) {
-            feishuClient.sendReply(message, "Access denied by lg4c whitelist.");
+            larkClient.sendReply(message, "Access denied by lg4c whitelist.");
             return;
         }
 
@@ -89,7 +89,7 @@ public class GatewayDaemonService {
                 recorder.appendAnswer(message.conversationKey(), message.messageId(), reply);
                 recorder.saveSession(new SessionSnapshot(message.conversationKey(), reply.sessionId(), message.messageId(),
                         MessageState.ANSWER_PERSISTED, Instant.now()));
-                feishuClient.sendReply(message, reply.finalAnswer()).join();
+                larkClient.sendReply(message, reply.finalAnswer()).join();
                 recorder.appendEvent(new ConversationEvent(message.conversationKey(), message.messageId(), "reply-sent", Instant.now(),
                         MessageState.REPLIED_TO_LARK, "{\"status\":\"ok\"}"));
                 recorder.saveSession(new SessionSnapshot(message.conversationKey(), reply.sessionId(), message.messageId(),
@@ -101,7 +101,7 @@ public class GatewayDaemonService {
                 } catch (IOException ignored) {
                     // best effort
                 }
-                feishuClient.sendReply(message, "LG4C failed to process the request.").join();
+                larkClient.sendReply(message, "LG4C failed to process the request.").join();
             }
         });
     }

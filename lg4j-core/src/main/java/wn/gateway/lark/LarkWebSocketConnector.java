@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import java.io.IOException;
 
@@ -8,7 +8,7 @@ import jakarta.websocket.Endpoint;
 import jakarta.websocket.Session;
 import wn.gateway.config.GatewayAppConfig;
 
-public interface FeishuWebSocketConnector {
+public interface LarkWebSocketConnector {
 
     Session connect(GatewayAppConfig config, Endpoint endpoint, ClientEndpointConfig endpointConfig)
             throws DeploymentException, IOException;

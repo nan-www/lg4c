@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -14,19 +14,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 
-class QuarkusFeishuGatewayClientVirtualThreadTest {
+class QuarkusLarkGatewayClientVirtualThreadTest {
 
     @Test
     void sendReplyDelegatesOnCallerThreadAndReturnsUnderlyingFuture() {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> apiThread = new AtomicReference<>();
         CompletableFuture<Void> replyFuture = new CompletableFuture<>();
-        FeishuReplyApi replyApi = (appId, appSecret, request) -> {
+        LarkReplyApi replyApi = (appId, appSecret, request) -> {
             apiThread.set(Thread.currentThread());
             return replyFuture;
         };
-        FeishuWebSocketConnector connector = (config, endpoint, endpointConfig) -> null;
-        QuarkusFeishuGatewayClient client = new QuarkusFeishuGatewayClient(
+        LarkWebSocketConnector connector = (config, endpoint, endpointConfig) -> null;
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
                 replyApi,
@@ -42,12 +42,12 @@ class QuarkusFeishuGatewayClientVirtualThreadTest {
     void websocketConnectRunsOnCallerThread() throws Exception {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> connectThread = new AtomicReference<>();
-        FeishuReplyApi replyApi = (appId, appSecret, request) -> CompletableFuture.completedFuture(null);
-        FeishuWebSocketConnector connector = (config, endpoint, endpointConfig) -> {
+        LarkReplyApi replyApi = (appId, appSecret, request) -> CompletableFuture.completedFuture(null);
+        LarkWebSocketConnector connector = (config, endpoint, endpointConfig) -> {
             connectThread.set(Thread.currentThread());
             return null;
         };
-        QuarkusFeishuGatewayClient client = new QuarkusFeishuGatewayClient(
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
                 replyApi,

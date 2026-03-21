@@ -1,4 +1,4 @@
-package wn.gateway.feishu;
+package wn.gateway.lark;
 
 import java.util.concurrent.CompletionStage;
 
@@ -12,11 +12,11 @@ import jakarta.ws.rs.core.MediaType;
 @Path("")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public interface FeishuReplyApi {
+public interface LarkReplyApi {
 
     @POST
     CompletionStage<Void> sendReply(
             @HeaderParam("X-Feishu-App-Id") String appId,
             @HeaderParam("X-Feishu-App-Secret") String appSecret,
-            FeishuReplyRequest request);
+            LarkReplyRequest request);
 }
