@@ -1,4 +1,4 @@
-package wn;
+package wn.cli;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

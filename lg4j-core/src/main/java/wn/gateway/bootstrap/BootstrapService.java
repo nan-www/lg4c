@@ -13,9 +13,6 @@ import wn.gateway.config.GatewayConfigStore;
 public class BootstrapService {
     private GatewayConfigStore store;
 
-    public BootstrapService() {
-    }
-
     @Inject
     public BootstrapService(GatewayConfigStore store) {
         this.store = store;

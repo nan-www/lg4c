@@ -1,4 +1,4 @@
-package wn;
+package wn.cli;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -98,7 +98,7 @@ public class GatewayDaemonCommand implements Callable<Integer> {
         return """
                 # LG4C Agent
 
-                You are running under LG4C.
+                You are running under LG4C(Local gateway for Codex).
                 Only operate inside the configured repository root.
                 Keep replies concise and focused on the incoming Feishu request.
                 """;

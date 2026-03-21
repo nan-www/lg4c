@@ -2,6 +2,8 @@ package wn;
 
 import jakarta.enterprise.context.Dependent;
 import picocli.CommandLine.Command;
+import wn.cli.GatewayDaemonCommand;
+import wn.cli.GatewayDoctorCommand;
 
 @Dependent
 @Command(

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import wn.cli.GatewayDaemonCommand;
+import wn.cli.GatewayDoctorCommand;
 import wn.gateway.bootstrap.BootstrapService;
 import wn.gateway.config.GatewayConfigStore;
 import wn.gateway.runtime.GatewayDaemonService;
