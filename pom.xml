@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>lg4j-core</module>
+        <module>lg4c-core</module>
         <module>example</module>
     </modules>
 

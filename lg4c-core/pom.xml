@@ -11,7 +11,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>lg4j-core</artifactId>
+    <artifactId>lg4c-core</artifactId>
     <packaging>quarkus</packaging>
 
     <dependencies>

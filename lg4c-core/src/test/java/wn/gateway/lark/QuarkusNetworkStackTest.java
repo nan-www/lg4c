@@ -33,7 +33,7 @@ class QuarkusNetworkStackTest {
                 "quarkus rest client should back outbound http calls");
         assertFalse(
                 pom.contains("<groupId>com.larksuite.oapi</groupId>"),
-                "lg4j-core must not depend on the official lark sdk");
+                "lg4c-core must not depend on the official lark sdk");
     }
 
     private boolean containsJdkHttpClientImport(Path path) {
