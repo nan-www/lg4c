@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import wn.gateway.lark.LarkEnvironment;
 
 @Getter
 @ToString
@@ -29,6 +30,7 @@ public class GatewayAppConfig {
     private final String agentTemplate;
     private final String feishuAppId;
     private final String feishuAppSecret;
+    private final String feishuBaseUrl;
     private final String feishuWebsocketUrl;
     private final String feishuReplyUrl;
     private final List<String> allowedUsers;
@@ -42,6 +44,7 @@ public class GatewayAppConfig {
             String agentTemplate,
             String feishuAppId,
             String feishuAppSecret,
+            String feishuBaseUrl,
             String feishuWebsocketUrl,
             String feishuReplyUrl,
             List<String> allowedUsers,
@@ -53,8 +56,11 @@ public class GatewayAppConfig {
         this.agentTemplate = agentTemplate == null ? DEFAULT_AGENT_TEMPLATE : agentTemplate;
         this.feishuAppId = Objects.requireNonNull(feishuAppId);
         this.feishuAppSecret = Objects.requireNonNull(feishuAppSecret);
-        this.feishuWebsocketUrl = Objects.requireNonNull(feishuWebsocketUrl);
-        this.feishuReplyUrl = Objects.requireNonNull(feishuReplyUrl);
+        this.feishuBaseUrl = feishuBaseUrl == null || feishuBaseUrl.isBlank()
+                ? LarkEnvironment.DEFAULT_BASE_URL
+                : feishuBaseUrl;
+        this.feishuWebsocketUrl = blankToNull(feishuWebsocketUrl);
+        this.feishuReplyUrl = blankToNull(feishuReplyUrl);
         this.allowedUsers = List.copyOf(Objects.requireNonNull(allowedUsers));
         this.allowedChats = List.copyOf(Objects.requireNonNull(allowedChats));
         this.loggingLevel = loggingLevel == null || loggingLevel.isBlank() ? "INFO" : loggingLevel;
@@ -67,10 +73,16 @@ public class GatewayAppConfig {
         require(agentTemplate != null && !agentTemplate.isBlank(), "gateway.agent.template must be configured");
         require(feishuAppId != null && !feishuAppId.isBlank(), "gateway.feishu.app-id must be configured");
         require(feishuAppSecret != null && !feishuAppSecret.isBlank(), "gateway.feishu.app-secret must be configured");
-        require(feishuWebsocketUrl != null && !feishuWebsocketUrl.isBlank(), "gateway.feishu.websocket-url must be configured");
-        require(feishuReplyUrl != null && !feishuReplyUrl.isBlank(), "gateway.feishu.reply-url must be configured");
         require(!allowedUsers.isEmpty(), "gateway.access.allowed-users must not be empty");
         require(!allowedChats.isEmpty(), "gateway.access.allowed-chats must not be empty");
+    }
+
+    public LarkEnvironment larkEnvironment() {
+        return new LarkEnvironment(feishuBaseUrl, feishuWebsocketUrl, feishuReplyUrl);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static void require(boolean condition, String message) {

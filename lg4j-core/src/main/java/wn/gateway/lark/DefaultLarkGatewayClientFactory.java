@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.lark.auth.LarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 
 @ApplicationScoped
 public class DefaultLarkGatewayClientFactory implements LarkGatewayClientFactory {
@@ -14,6 +16,10 @@ public class DefaultLarkGatewayClientFactory implements LarkGatewayClientFactory
     LarkReplyApiFactory replyApiFactory;
     @Inject
     LarkWebSocketConnector webSocketConnector;
+    @Inject
+    LarkEndpointDiscoveryService endpointDiscoveryService;
+    @Inject
+    LarkAccessTokenProvider accessTokenProvider;
 
     @Override
     public LarkGatewayClient create(GatewayAppConfig config) {
@@ -21,6 +27,8 @@ public class DefaultLarkGatewayClientFactory implements LarkGatewayClientFactory
                 config,
                 mapper,
                 replyApiFactory.create(config),
-                webSocketConnector);
+                webSocketConnector,
+                endpointDiscoveryService,
+                accessTokenProvider);
     }
 }

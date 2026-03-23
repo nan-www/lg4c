@@ -34,8 +34,6 @@ class BootstrapServiceTest {
                 .agentTemplate("default agent instructions")
                 .feishuAppId("app-id")
                 .feishuAppSecret("app-secret")
-                .feishuWebsocketUrl("wss://open.feishu.test/ws")
-                .feishuReplyUrl("https://open.feishu.test/reply")
                 .allowedUsers(List.of("ou_1"))
                 .allowedChats(List.of("oc_1"))
                 .loggingLevel("INFO")
@@ -76,8 +74,6 @@ class BootstrapServiceTest {
                 .agentTemplate("default agent instructions")
                 .feishuAppId("app-id")
                 .feishuAppSecret("app-secret")
-                .feishuWebsocketUrl("wss://open.feishu.test/ws")
-                .feishuReplyUrl("https://open.feishu.test/reply")
                 .allowedUsers(List.of("ou_1"))
                 .allowedChats(List.of("oc_1"))
                 .loggingLevel("INFO")
@@ -88,5 +84,36 @@ class BootstrapServiceTest {
 
         assertEquals("user customized", Files.readString(agentFile));
         assertFalse(Files.readString(agentFile).contains("default"));
+    }
+
+    @Test
+    void feishuBootstrapSummaryDescribesAutomaticDiscovery() {
+        BootstrapService service = new BootstrapService(new GatewayConfigStore());
+
+        assertTrue(service.feishuBootstrapSummary().contains("APP_ID"));
+        assertTrue(service.feishuBootstrapSummary().contains("APP_SECRET"));
+        assertTrue(service.feishuBootstrapSummary().contains("automatic"));
+    }
+
+    @Test
+    void warningsFlagManualEndpointOverridesAsDeprecated() {
+        GatewayAppConfig config = GatewayAppConfig.builder()
+                .codexCommand(List.of("codex"))
+                .workspaceRoot(tempDir.resolve("workspace-warn"))
+                .recordRoot(tempDir.resolve("home-warn/.lg4c/records"))
+                .agentTemplate("default agent instructions")
+                .feishuAppId("app-id")
+                .feishuAppSecret("app-secret")
+                .feishuWebsocketUrl("wss://open.feishu.test/ws")
+                .feishuReplyUrl("https://open.feishu.test/reply")
+                .allowedUsers(List.of("ou_1"))
+                .allowedChats(List.of("oc_1"))
+                .loggingLevel("INFO")
+                .build();
+
+        BootstrapService service = new BootstrapService(new GatewayConfigStore());
+
+        assertEquals(1, service.warningsFor(config).size());
+        assertTrue(service.warningsFor(config).getFirst().contains("deprecated"));
     }
 }

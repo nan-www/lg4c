@@ -1,6 +1,7 @@
 package wn.gateway.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Path;
@@ -40,5 +41,22 @@ class GatewayAppConfigTest {
         assertEquals(List.of("oc_1"), config.allowedChats());
         assertEquals("INFO", config.loggingLevel());
         assertThrows(UnsupportedOperationException.class, () -> config.codexCommand().add("other"));
+    }
+
+    @Test
+    void validateAllowsMissingLarkEndpointOverrides() {
+        GatewayAppConfig config = GatewayAppConfig.builder()
+                .codexCommand(List.of("codex"))
+                .workspaceRoot(Path.of("/tmp/workspace"))
+                .recordRoot(Path.of("/tmp/.lg4c/records"))
+                .agentTemplate("agent")
+                .feishuAppId("app-id")
+                .feishuAppSecret("app-secret")
+                .allowedUsers(List.of("ou_1"))
+                .allowedChats(List.of("oc_1"))
+                .loggingLevel("INFO")
+                .build();
+
+        assertDoesNotThrow(config::validate);
     }
 }

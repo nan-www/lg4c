@@ -1,0 +1,66 @@
+package wn.gateway.lark.auth;
+
+import java.time.Clock;
+import java.time.Instant;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import wn.gateway.config.GatewayAppConfig;
+
+@ApplicationScoped
+public class CachedLarkAccessTokenProvider implements LarkAccessTokenProvider {
+    private final LarkTenantAccessTokenApiFactory apiFactory;
+    private final Clock clock;
+    private final int refreshSkewSeconds;
+
+    private volatile CachedToken cachedToken;
+
+    @Inject
+    public CachedLarkAccessTokenProvider(LarkTenantAccessTokenApiFactory apiFactory) {
+        this(apiFactory, Clock.systemUTC(), 60);
+    }
+
+    public static CachedLarkAccessTokenProvider forTest(
+            LarkTenantAccessTokenApi api,
+            Clock clock,
+            int refreshSkewSeconds) {
+        return new CachedLarkAccessTokenProvider(config -> api, clock, refreshSkewSeconds);
+    }
+
+    CachedLarkAccessTokenProvider(LarkTenantAccessTokenApiFactory apiFactory, Clock clock, int refreshSkewSeconds) {
+        this.apiFactory = apiFactory;
+        this.clock = clock;
+        this.refreshSkewSeconds = refreshSkewSeconds;
+    }
+
+    @Override
+    public String getTenantAccessToken(GatewayAppConfig config) {
+        CachedToken snapshot = cachedToken;
+        Instant now = clock.instant();
+        if (snapshot != null && snapshot.expiresAt().isAfter(now.plusSeconds(refreshSkewSeconds))) {
+            return snapshot.token();
+        }
+        synchronized (this) {
+            snapshot = cachedToken;
+            now = clock.instant();
+            if (snapshot != null && snapshot.expiresAt().isAfter(now.plusSeconds(refreshSkewSeconds))) {
+                return snapshot.token();
+            }
+            LarkTenantAccessTokenResponse response = apiFactory.create(config)
+                    .fetch(new LarkTenantAccessTokenRequest(config.feishuAppId(), config.feishuAppSecret()));
+            if (response == null || response.tenantAccessToken() == null || response.tenantAccessToken().isBlank()) {
+                throw new IllegalStateException("failed to fetch feishu tenant access token");
+            }
+            if (response.code() != 0) {
+                throw new IllegalStateException("failed to fetch feishu tenant access token: " + response.msg());
+            }
+            cachedToken = new CachedToken(
+                    response.tenantAccessToken(),
+                    now.plusSeconds(Math.max(1, response.expireSeconds())));
+            return cachedToken.token();
+        }
+    }
+
+    private record CachedToken(String token, Instant expiresAt) {
+    }
+}

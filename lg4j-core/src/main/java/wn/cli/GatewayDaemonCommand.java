@@ -44,6 +44,9 @@ public class GatewayDaemonCommand implements Callable<Integer> {
     @Option(names = "--feishu-app-secret")
     String feishuAppSecret;
 
+    @Option(names = "--feishu-base-url")
+    String feishuBaseUrl;
+
     @Option(names = "--feishu-websocket-url")
     String feishuWebsocketUrl;
 
@@ -72,6 +75,7 @@ public class GatewayDaemonCommand implements Callable<Integer> {
                     .agentTemplate(defaultAgentTemplate())
                     .feishuAppId(feishuAppId)
                     .feishuAppSecret(feishuAppSecret)
+                    .feishuBaseUrl(feishuBaseUrl)
                     .feishuWebsocketUrl(feishuWebsocketUrl)
                     .feishuReplyUrl(feishuReplyUrl)
                     .allowedUsers(allowedUsers)
@@ -81,10 +85,12 @@ public class GatewayDaemonCommand implements Callable<Integer> {
             bootstrapService.initializeWorkspace(config);
             bootstrapService.save(home, config);
             System.out.printf("Bootstrap complete: %s%n", store.configFile(home));
+            System.out.println(bootstrapService.feishuBootstrapSummary());
+            bootstrapService.warningsFor(config).forEach(System.out::println);
             return 0;
         }
 
-        if (!java.nio.file.Files.exists(store.configFile(home))) {
+        if (!store.exists(home)) {
             System.err.println("Missing lg4c config. Run `lg4c daemon --bootstrap` first.");
             return 2;
         }

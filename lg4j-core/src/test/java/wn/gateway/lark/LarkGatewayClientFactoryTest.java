@@ -5,21 +5,31 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.lark.auth.LarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
-@QuarkusTest
 class LarkGatewayClientFactoryTest {
-
-    @Inject
-    LarkGatewayClientFactory factory;
 
     @Test
     void factoryCreatesQuarkusWebSocketClient() {
+        DefaultLarkGatewayClientFactory factory = new DefaultLarkGatewayClientFactory();
+        factory.mapper = new ObjectMapper();
+        factory.replyApiFactory = config -> (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
+        factory.webSocketConnector = (websocketUrl, endpoint, endpointConfig) -> null;
+        factory.endpointDiscoveryService = config -> new LarkWsBootstrapResult(
+                "wss://open.feishu.test/ws",
+                LarkClientRuntimeConfig.DEFAULT);
+        factory.accessTokenProvider = config -> "tenant-token";
+
         GatewayAppConfig config = GatewayAppConfig.builder()
                 .codexCommand(List.of("codex"))
                 .workspaceRoot(Path.of("/tmp/workspace"))

@@ -19,6 +19,10 @@ public class GatewayConfigStore {
         return homeDir.resolve(".lg4c/config/application.yml");
     }
 
+    public boolean exists(Path homeDir) {
+        return Files.exists(configFile(homeDir));
+    }
+
     public GatewayAppConfig load(Path homeDir) throws IOException {
         ConfigDocument document = YAML.readValue(configFile(homeDir).toFile(), ConfigDocument.class);
         GatewayAppConfig config = GatewayAppConfig.builder()
@@ -28,6 +32,7 @@ public class GatewayConfigStore {
                 .agentTemplate(document.gateway.agent.template)
                 .feishuAppId(document.gateway.feishu.appId)
                 .feishuAppSecret(document.gateway.feishu.appSecret)
+                .feishuBaseUrl(document.gateway.feishu.baseUrl)
                 .feishuWebsocketUrl(document.gateway.feishu.websocketUrl)
                 .feishuReplyUrl(document.gateway.feishu.replyUrl)
                 .allowedUsers(document.gateway.access.allowedUsers)
@@ -75,6 +80,7 @@ public class GatewayConfigStore {
             document.gateway.feishu = new LarkDocument();
             document.gateway.feishu.appId = config.feishuAppId();
             document.gateway.feishu.appSecret = config.feishuAppSecret();
+            document.gateway.feishu.baseUrl = config.feishuBaseUrl();
             document.gateway.feishu.websocketUrl = config.feishuWebsocketUrl();
             document.gateway.feishu.replyUrl = config.feishuReplyUrl();
             document.gateway.access = new AccessDocument();
@@ -121,6 +127,7 @@ public class GatewayConfigStore {
     static final class LarkDocument {
         public String appId;
         public String appSecret;
+        public String baseUrl;
         public String websocketUrl;
         public String replyUrl;
     }

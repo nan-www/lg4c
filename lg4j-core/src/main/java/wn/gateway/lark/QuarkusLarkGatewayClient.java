@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.CloseReason;
@@ -18,23 +19,32 @@ import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.Session;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
+import wn.gateway.lark.auth.LarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
     private final LarkReplyApi replyApi;
     private final LarkWebSocketConnector webSocketConnector;
+    private final LarkEndpointDiscoveryService endpointDiscoveryService;
+    private final LarkAccessTokenProvider accessTokenProvider;
     private volatile Session session;
 
     public QuarkusLarkGatewayClient(
             GatewayAppConfig config,
             ObjectMapper mapper,
             LarkReplyApi replyApi,
-            LarkWebSocketConnector webSocketConnector) {
+            LarkWebSocketConnector webSocketConnector,
+            LarkEndpointDiscoveryService endpointDiscoveryService,
+            LarkAccessTokenProvider accessTokenProvider) {
         this.config = config;
         this.mapper = mapper;
         this.replyApi = replyApi;
         this.webSocketConnector = webSocketConnector;
+        this.endpointDiscoveryService = endpointDiscoveryService;
+        this.accessTokenProvider = accessTokenProvider;
     }
 
     @Override
@@ -43,7 +53,8 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                 .configurator(new HeaderConfigurator(config))
                 .build();
         try {
-            session = webSocketConnector.connect(config, new LarkEndpoint(messageConsumer), endpointConfig);
+            LarkWsBootstrapResult bootstrap = endpointDiscoveryService.resolve(config);
+            session = webSocketConnector.connect(bootstrap.websocketUrl(), new LarkEndpoint(messageConsumer), endpointConfig);
         } catch (DeploymentException | IOException e) {
             throw new IllegalStateException("failed to connect to feishu websocket", e);
         }
@@ -51,12 +62,9 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
 
     @Override
     public CompletableFuture<Void> sendReply(InboundMessage message, String answer) {
-        LarkReplyRequest payload = new LarkReplyRequest(
-                message.messageId(),
-                message.chatId(),
-                message.userId(),
-                answer);
-        return replyApi.sendReply(config.feishuAppId(), config.feishuAppSecret(), payload).toCompletableFuture();
+        String token = accessTokenProvider.getTenantAccessToken(config);
+        LarkReplyRequest payload = buildReply(message, answer);
+        return replyApi.sendReply("Bearer " + token, message.messageId(), payload).toCompletableFuture();
     }
 
     @Override
@@ -80,6 +88,12 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
         String text = root.at("/event/message/content/text").asText(root.at("/message/text").asText());
         long epochMillis = root.at("/header/create_time").asLong(root.path("timestamp").asLong(System.currentTimeMillis()));
         return new InboundMessage(userId, chatId, messageId, text, Instant.ofEpochMilli(epochMillis));
+    }
+
+    private LarkReplyRequest buildReply(InboundMessage message, String answer) {
+        ObjectNode content = mapper.createObjectNode();
+        content.put("text", answer);
+        return new LarkReplyRequest(content.toString(), "text", message.messageId());
     }
 
     private final class LarkEndpoint extends Endpoint {

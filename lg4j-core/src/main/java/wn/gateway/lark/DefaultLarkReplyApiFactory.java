@@ -11,8 +11,11 @@ public class DefaultLarkReplyApiFactory implements LarkReplyApiFactory {
 
     @Override
     public LarkReplyApi create(GatewayAppConfig config) {
+        String baseUri = config.feishuReplyUrl() != null
+                ? config.feishuReplyUrl()
+                : config.larkEnvironment().baseUrl();
         return QuarkusRestClientBuilder.newBuilder()
-                .baseUri(URI.create(config.feishuReplyUrl()))
+                .baseUri(URI.create(baseUri))
                 .build(LarkReplyApi.class);
     }
 }
