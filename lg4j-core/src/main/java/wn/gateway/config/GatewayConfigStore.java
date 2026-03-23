@@ -26,18 +26,18 @@ public class GatewayConfigStore {
     public GatewayAppConfig load(Path homeDir) throws IOException {
         ConfigDocument document = YAML.readValue(configFile(homeDir).toFile(), ConfigDocument.class);
         GatewayAppConfig config = GatewayAppConfig.builder()
-                .codexCommand(document.gateway.codex.command)
+                .codexCommand(listOrDefault(document.gateway.codex == null ? null : document.gateway.codex.command, List.of("codex")))
                 .workspaceRoot(Path.of(document.gateway.workspace.root))
                 .recordRoot(Path.of(document.gateway.record.root))
-                .agentTemplate(document.gateway.agent.template)
+                .agentTemplate(document.gateway.agent == null ? null : document.gateway.agent.template)
                 .feishuAppId(document.gateway.feishu.appId)
                 .feishuAppSecret(document.gateway.feishu.appSecret)
                 .feishuBaseUrl(document.gateway.feishu.baseUrl)
                 .feishuWebsocketUrl(document.gateway.feishu.websocketUrl)
                 .feishuReplyUrl(document.gateway.feishu.replyUrl)
-                .allowedUsers(document.gateway.access.allowedUsers)
-                .allowedChats(document.gateway.access.allowedChats)
-                .loggingLevel(document.gateway.logging.level)
+                .allowedUsers(listOrEmpty(document.gateway.access == null ? null : document.gateway.access.allowedUsers))
+                .allowedChats(listOrEmpty(document.gateway.access == null ? null : document.gateway.access.allowedChats))
+                .loggingLevel(document.gateway.logging == null ? null : document.gateway.logging.level)
                 .build();
         config.validate();
         return config;
@@ -60,6 +60,14 @@ public class GatewayConfigStore {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static List<String> listOrEmpty(List<String> values) {
+        return values == null ? List.of() : values;
+    }
+
+    private static List<String> listOrDefault(List<String> values, List<String> defaultValues) {
+        return values == null || values.isEmpty() ? defaultValues : values;
     }
 
     @SuppressWarnings("unused")

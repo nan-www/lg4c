@@ -1,14 +1,21 @@
 package wn;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,7 +23,9 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 import wn.cli.GatewayDaemonCommand;
 import wn.cli.GatewayDoctorCommand;
+import wn.cli.GatewayStartupFlow;
 import wn.gateway.bootstrap.BootstrapService;
+import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.config.GatewayConfigStore;
 import wn.gateway.runtime.GatewayDaemonService;
 
@@ -26,62 +35,53 @@ class GatewayCommandTest {
     Path tempDir;
 
     @Test
-    void daemonRefusesToStartWithoutBootstrap() throws Exception {
-        GatewayDaemonCommand command = daemonCommand();
-
-        ExecutionResult result = execute(
-                new CommandLine(command),
-                "--home", tempDir.resolve("missing-home").toString());
-
-        assertEquals(2, result.exitCode());
-        assertTrue(result.stderr().contains("--bootstrap"));
-    }
-
-    @Test
-    void rootCommandPrintsUsage() {
-        GatewayMain main = new GatewayMain();
-        main.rootCommand = new GatewayRootCommand();
-        main.factory = new CommandLine.IFactory() {
-            @Override
-            public <K> K create(Class<K> cls) throws Exception {
-                return cls.getDeclaredConstructor().newInstance();
-            }
-        };
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        PrintStream original = System.out;
-        try {
-            System.setOut(new PrintStream(output, true));
-            int exitCode = main.run();
-            assertEquals(0, exitCode);
-            assertTrue(output.toString().contains("Usage"));
-        } finally {
-            System.setOut(original);
-        }
-    }
-
-    @Test
-    void daemonBootstrapCreatesLocalConfig() throws Exception {
-        Path homeDir = tempDir.resolve("bootstrap-home");
-        Path workspaceDir = tempDir.resolve("bootstrap-workspace");
+    void mainRunsDefaultStartupFlowWhenNoArgs() throws Exception {
+        Path homeDir = tempDir.resolve("main-home");
+        Path workspaceDir = tempDir.resolve("main-workspace");
         Files.createDirectories(homeDir);
         Files.createDirectories(workspaceDir);
 
-        ExecutionResult result = execute(
-                new CommandLine(daemonCommand()),
-                "--bootstrap",
-                "--home", homeDir.toString(),
-                "--workspace", workspaceDir.toString(),
-                "--codex-command", "codex",
-                "--feishu-app-id", "app-id",
-                "--feishu-app-secret", "app-secret",
-                "--allowed-user", "ou_1",
-                "--allowed-chat", "oc_1");
+        GatewayConfigStore store = new GatewayConfigStore();
+        store.save(homeDir, configFor(workspaceDir));
+        RecordingGatewayDaemonService daemonService = new RecordingGatewayDaemonService();
+
+        GatewayMain main = new GatewayMain();
+        main.rootCommand = rootCommand(daemonService);
+        main.factory = CommandLine.defaultFactory();
+
+        ExecutionResult result = executeMain(main, null, "--home", homeDir.toString());
+
+        assertEquals(0, result.exitCode(), result.stdout() + result.stderr());
+        assertTrue(result.stdout().contains("Almost friday sir."));
+        assertFalse(result.stdout().contains("Usage"));
+        assertEquals(1, daemonService.invocations);
+    }
+
+    @Test
+    void rootCommandBootstrapsInteractivelyWhenConfigMissing() throws Exception {
+        Path homeDir = tempDir.resolve("interactive-home");
+        Path workspaceDir = tempDir.resolve("interactive-workspace");
+        RecordingGatewayDaemonService daemonService = new RecordingGatewayDaemonService();
+        String input = String.join(System.lineSeparator(), "app-id", "app-secret", workspaceDir.toString()) + System.lineSeparator();
+
+        ExecutionResult result = executeWithInput(
+                new CommandLine(rootCommand(daemonService)),
+                input,
+                "--home", homeDir.toString());
 
         assertEquals(0, result.exitCode(), result.stdout() + result.stderr());
         assertTrue(Files.exists(homeDir.resolve(".lg4c/config/application.yml")));
         assertTrue(Files.exists(workspaceDir.resolve("AGENT.md")));
-        assertTrue(result.stdout().contains("APP_ID and APP_SECRET"));
-        assertTrue(result.stdout().contains("automatic"));
+        assertTrue(result.stdout().contains("Almost friday sir."));
+        assertEquals(1, daemonService.invocations);
+
+        GatewayAppConfig savedConfig = new GatewayConfigStore().load(homeDir);
+        assertEquals("app-id", savedConfig.feishuAppId());
+        assertEquals("app-secret", savedConfig.feishuAppSecret());
+        assertEquals(workspaceDir, savedConfig.workspaceRoot());
+        assertTrue(savedConfig.allowedUsers().isEmpty());
+        assertTrue(savedConfig.allowedChats().isEmpty());
+        assertNotNull(daemonService.lastConfig);
     }
 
     @Test
@@ -91,17 +91,7 @@ class GatewayCommandTest {
         Files.createDirectories(homeDir);
         Files.createDirectories(workspaceDir);
 
-        ExecutionResult bootstrap = execute(
-                new CommandLine(daemonCommand()),
-                "--bootstrap",
-                "--home", homeDir.toString(),
-                "--workspace", workspaceDir.toString(),
-                "--codex-command", "codex",
-                "--feishu-app-id", "app-id",
-                "--feishu-app-secret", "app-secret",
-                "--allowed-user", "ou_1",
-                "--allowed-chat", "oc_1");
-        assertEquals(0, bootstrap.exitCode(), bootstrap.stdout() + bootstrap.stderr());
+        new GatewayConfigStore().save(homeDir, configFor(workspaceDir));
 
         ExecutionResult doctor = execute(
                 new CommandLine(doctorCommand()),
@@ -119,20 +109,11 @@ class GatewayCommandTest {
         Files.createDirectories(homeDir);
         Files.createDirectories(workspaceDir);
 
-        ExecutionResult bootstrap = execute(
-                new CommandLine(daemonCommand()),
-                "--bootstrap",
-                "--home", homeDir.toString(),
-                "--workspace", workspaceDir.toString(),
-                "--codex-command", "codex",
-                "--feishu-app-id", "app-id",
-                "--feishu-app-secret", "app-secret",
-                "--feishu-websocket-url", "wss://open.feishu.test/ws",
-                "--feishu-reply-url", "https://open.feishu.test/reply",
-                "--allowed-user", "ou_1",
-                "--allowed-chat", "oc_1");
-        assertEquals(0, bootstrap.exitCode(), bootstrap.stdout() + bootstrap.stderr());
-        assertTrue(bootstrap.stdout().contains("deprecated"));
+        new GatewayConfigStore()
+                .save(homeDir, configFor(workspaceDir).toBuilder()
+                        .feishuWebsocketUrl("wss://open.feishu.test/ws")
+                        .feishuReplyUrl("https://open.feishu.test/reply")
+                        .build());
 
         ExecutionResult doctor = execute(
                 new CommandLine(doctorCommand()),
@@ -142,14 +123,61 @@ class GatewayCommandTest {
         assertTrue(doctor.stdout().contains("deprecated"));
     }
 
-    private GatewayDaemonCommand daemonCommand() throws Exception {
+    @Test
+    void daemonUsesParametersBeforePromptingForMissingFields() throws Exception {
+        Path homeDir = tempDir.resolve("mixed-home");
+        Path workspaceDir = tempDir.resolve("mixed-workspace");
+        RecordingGatewayDaemonService daemonService = new RecordingGatewayDaemonService();
+        String input = String.join(System.lineSeparator(), "prompt-secret", workspaceDir.toString()) + System.lineSeparator();
+
+        ExecutionResult result = executeWithInput(
+                new CommandLine(daemonCommand(daemonService)),
+                input,
+                "--home", homeDir.toString(),
+                "--feishu-app-id", "flag-app-id");
+
+        assertEquals(0, result.exitCode(), result.stdout() + result.stderr());
+        assertTrue(result.stdout().contains("Almost friday sir."));
+        assertEquals(1, daemonService.invocations);
+
+        GatewayAppConfig savedConfig = new GatewayConfigStore().load(homeDir);
+        assertEquals("flag-app-id", savedConfig.feishuAppId());
+        assertEquals("prompt-secret", savedConfig.feishuAppSecret());
+        assertEquals(workspaceDir, savedConfig.workspaceRoot());
+    }
+
+    @Test
+    void daemonFailsFastWhenInteractiveInputEndsEarly() throws Exception {
+        Path homeDir = tempDir.resolve("incomplete-home");
+
+        ExecutionResult result = assertTimeoutPreemptively(
+                Duration.ofSeconds(1),
+                () -> executeWithInput(
+                        new CommandLine(daemonCommand(new RecordingGatewayDaemonService())),
+                        "app-id" + System.lineSeparator(),
+                        "--home", homeDir.toString()));
+
+        assertEquals(2, result.exitCode());
+        assertFalse(Files.exists(homeDir.resolve(".lg4c/config/application.yml")));
+        assertTrue(result.stderr().contains("APPSecret"));
+    }
+
+    private GatewayRootCommand rootCommand(RecordingGatewayDaemonService daemonService) throws Exception {
+        GatewayRootCommand command = new GatewayRootCommand();
+        inject(command, "startupFlow", startupFlow(daemonService));
+        return command;
+    }
+
+    private GatewayDaemonCommand daemonCommand(RecordingGatewayDaemonService daemonService) throws Exception {
+        GatewayDaemonCommand command = new GatewayDaemonCommand();
+        inject(command, "startupFlow", startupFlow(daemonService));
+        return command;
+    }
+
+    private GatewayStartupFlow startupFlow(RecordingGatewayDaemonService daemonService) {
         GatewayConfigStore store = new GatewayConfigStore();
         BootstrapService bootstrapService = new BootstrapService(store);
-        GatewayDaemonCommand command = new GatewayDaemonCommand();
-        inject(command, "store", store);
-        inject(command, "bootstrapService", bootstrapService);
-        inject(command, "daemonService", new NoopGatewayDaemonService());
-        return command;
+        return new GatewayStartupFlow(store, bootstrapService, daemonService);
     }
 
     private GatewayDoctorCommand doctorCommand() throws Exception {
@@ -162,11 +190,23 @@ class GatewayCommandTest {
     }
 
     private ExecutionResult execute(CommandLine commandLine, String... args) {
+        return executeInternal(commandLine, null, args);
+    }
+
+    private ExecutionResult executeWithInput(CommandLine commandLine, String input, String... args) {
+        return executeInternal(commandLine, input, args);
+    }
+
+    private ExecutionResult executeInternal(CommandLine commandLine, String input, String... args) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
+        InputStream originalIn = System.in;
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
         try {
+            if (input != null) {
+                System.setIn(new ByteArrayInputStream(input.getBytes()));
+            }
             System.setOut(new PrintStream(out, true));
             System.setErr(new PrintStream(err, true));
             commandLine.setOut(new PrintWriter(out, true));
@@ -174,9 +214,49 @@ class GatewayCommandTest {
             int exitCode = commandLine.execute(args);
             return new ExecutionResult(exitCode, out.toString(), err.toString());
         } finally {
+            System.setIn(originalIn);
             System.setOut(originalOut);
             System.setErr(originalErr);
         }
+    }
+
+    private ExecutionResult executeMain(GatewayMain main, String input, String... args) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        InputStream originalIn = System.in;
+        PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
+        try {
+            if (input != null) {
+                System.setIn(new ByteArrayInputStream(input.getBytes()));
+            }
+            System.setOut(new PrintStream(out, true));
+            System.setErr(new PrintStream(err, true));
+            int exitCode = main.run(args);
+            return new ExecutionResult(exitCode, out.toString(), err.toString());
+        } finally {
+            System.setIn(originalIn);
+            System.setOut(originalOut);
+            System.setErr(originalErr);
+        }
+    }
+
+    private GatewayAppConfig configFor(Path workspaceDir) {
+        return GatewayAppConfig.builder()
+                .codexCommand(List.of("codex"))
+                .workspaceRoot(workspaceDir)
+                .recordRoot(tempDir.resolve("records"))
+                .agentTemplate("""
+                        # LG4C Agent
+
+                        Test agent template.
+                        """)
+                .feishuAppId("app-id")
+                .feishuAppSecret("app-secret")
+                .allowedUsers(List.of())
+                .allowedChats(List.of())
+                .loggingLevel("INFO")
+                .build();
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
@@ -188,10 +268,14 @@ class GatewayCommandTest {
     private record ExecutionResult(int exitCode, String stdout, String stderr) {
     }
 
-    private static final class NoopGatewayDaemonService extends GatewayDaemonService {
+    private static final class RecordingGatewayDaemonService extends GatewayDaemonService {
+        int invocations;
+        GatewayAppConfig lastConfig;
+
         @Override
-        public void run(wn.gateway.config.GatewayAppConfig config) {
-            // no-op for CLI contract tests
+        public void run(GatewayAppConfig config) {
+            invocations++;
+            lastConfig = config;
         }
     }
 }

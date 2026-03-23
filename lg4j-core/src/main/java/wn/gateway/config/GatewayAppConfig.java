@@ -15,7 +15,7 @@ import wn.gateway.lark.LarkEnvironment;
 @ToString
 @EqualsAndHashCode
 @Accessors(fluent = true)
-@Builder
+@Builder(toBuilder = true)
 public class GatewayAppConfig {
     private static final String DEFAULT_AGENT_TEMPLATE = """
             # LG4C Agent
@@ -73,8 +73,6 @@ public class GatewayAppConfig {
         require(agentTemplate != null && !agentTemplate.isBlank(), "gateway.agent.template must be configured");
         require(feishuAppId != null && !feishuAppId.isBlank(), "gateway.feishu.app-id must be configured");
         require(feishuAppSecret != null && !feishuAppSecret.isBlank(), "gateway.feishu.app-secret must be configured");
-        require(!allowedUsers.isEmpty(), "gateway.access.allowed-users must not be empty");
-        require(!allowedChats.isEmpty(), "gateway.access.allowed-chats must not be empty");
     }
 
     public LarkEnvironment larkEnvironment() {

@@ -18,10 +18,6 @@ public class GatewayMain implements QuarkusApplication {
     @Override
     public int run(String... args) {
         CommandLine commandLine = new CommandLine(rootCommand, factory);
-        if (args.length == 0) {
-            commandLine.usage(System.out);
-            return 0;
-        }
         return commandLine.execute(args);
     }
 }
