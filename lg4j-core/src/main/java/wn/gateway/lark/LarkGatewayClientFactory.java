@@ -9,13 +9,13 @@ import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 
 @ApplicationScoped
-public class DefaultLarkGatewayClientFactory {
+public class LarkGatewayClientFactory {
     @Inject
     ObjectMapper mapper;
     @Inject
-    DefaultLarkReplyApiFactory replyApiFactory;
+    LarkReplyApiFactory replyApiFactory;
     @Inject
-    DefaultLarkWebSocketConnector webSocketConnector;
+    LarkWebSocketConnector webSocketConnector;
     @Inject
     DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
     @Inject

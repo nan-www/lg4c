@@ -12,7 +12,7 @@ import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 
 @ApplicationScoped
-public class DefaultLarkWebSocketConnector {
+public class LarkWebSocketConnector {
 
     public Session connect(String websocketUrl, Endpoint endpoint, ClientEndpointConfig endpointConfig)
             throws DeploymentException, IOException {

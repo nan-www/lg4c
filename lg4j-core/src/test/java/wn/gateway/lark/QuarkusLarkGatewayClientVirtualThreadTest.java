@@ -30,7 +30,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             apiThread.set(Thread.currentThread());
             return replyFuture;
         };
-        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
         DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
         when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.test/ws",
@@ -56,7 +56,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> connectThread = new AtomicReference<>();
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
         doAnswer(invocation -> {
             connectThread.set(Thread.currentThread());
             return null;

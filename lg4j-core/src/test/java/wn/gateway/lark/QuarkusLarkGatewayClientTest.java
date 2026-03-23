@@ -31,7 +31,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                 LarkClientRuntimeConfig.DEFAULT));
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
         doAnswer(invocation -> {
             connectedUrl.set(invocation.getArgument(0, String.class));
             return null;
@@ -68,7 +68,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                mock(DefaultLarkWebSocketConnector.class),
+                mock(LarkWebSocketConnector.class),
                 mock(DefaultLarkEndpointDiscoveryService.class),
                 tokenProvider);
 

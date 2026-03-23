@@ -16,7 +16,7 @@ import wn.gateway.domain.ConversationEvent;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.domain.MessageState;
-import wn.gateway.lark.DefaultLarkGatewayClientFactory;
+import wn.gateway.lark.LarkGatewayClientFactory;
 import wn.gateway.lark.LarkGatewayClient;
 import wn.gateway.record.FileConversationRecorder;
 import wn.gateway.session.FileSessionStateStore;
@@ -32,7 +32,7 @@ public class GatewayDaemonService {
     ObjectMapper mapper;
 
     @Inject
-    DefaultLarkGatewayClientFactory larkGatewayClientFactory;
+    LarkGatewayClientFactory larkGatewayClientFactory;
 
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);

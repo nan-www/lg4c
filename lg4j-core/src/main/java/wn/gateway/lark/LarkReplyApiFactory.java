@@ -7,7 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkReplyApiFactory {
+public class LarkReplyApiFactory {
 
     public LarkReplyApi create(GatewayAppConfig config) {
         String baseUri = config.feishuReplyUrl() != null

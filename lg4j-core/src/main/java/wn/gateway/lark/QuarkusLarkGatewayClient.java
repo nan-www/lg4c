@@ -29,7 +29,7 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
     private final LarkReplyApi replyApi;
-    private final DefaultLarkWebSocketConnector webSocketConnector;
+    private final LarkWebSocketConnector webSocketConnector;
     private final DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
     private final CachedLarkAccessTokenProvider accessTokenProvider;
     private volatile Session session;

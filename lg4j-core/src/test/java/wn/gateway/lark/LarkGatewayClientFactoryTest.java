@@ -19,10 +19,10 @@ class LarkGatewayClientFactoryTest {
 
     @Test
     void factoryCreatesQuarkusWebSocketClient() {
-        DefaultLarkGatewayClientFactory factory = new DefaultLarkGatewayClientFactory();
+        LarkGatewayClientFactory factory = new LarkGatewayClientFactory();
         factory.mapper = new ObjectMapper();
-        factory.replyApiFactory = mock(DefaultLarkReplyApiFactory.class);
-        factory.webSocketConnector = mock(DefaultLarkWebSocketConnector.class);
+        factory.replyApiFactory = mock(LarkReplyApiFactory.class);
+        factory.webSocketConnector = mock(LarkWebSocketConnector.class);
         factory.endpointDiscoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
         factory.accessTokenProvider = mock(CachedLarkAccessTokenProvider.class);
 
