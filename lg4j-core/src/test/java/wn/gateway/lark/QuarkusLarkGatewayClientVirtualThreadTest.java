@@ -1,8 +1,12 @@
 package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -10,9 +14,9 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import wn.gateway.lark.auth.LarkAccessTokenProvider;
+import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
 class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
@@ -26,11 +30,13 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             apiThread.set(Thread.currentThread());
             return replyFuture;
         };
-        LarkWebSocketConnector connector = (websocketUrl, endpoint, endpointConfig) -> null;
-        LarkEndpointDiscoveryService discoveryService = config -> new LarkWsBootstrapResult(
+        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.test/ws",
-                LarkClientRuntimeConfig.DEFAULT);
-        LarkAccessTokenProvider tokenProvider = config -> "tenant-token";
+                LarkClientRuntimeConfig.DEFAULT));
+        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
+        when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
@@ -50,14 +56,16 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> connectThread = new AtomicReference<>();
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        LarkWebSocketConnector connector = (websocketUrl, endpoint, endpointConfig) -> {
+        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        doAnswer(invocation -> {
             connectThread.set(Thread.currentThread());
             return null;
-        };
-        LarkEndpointDiscoveryService discoveryService = config -> new LarkWsBootstrapResult(
+        }).when(connector).connect(anyString(), any(), any());
+        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.test/ws",
-                LarkClientRuntimeConfig.DEFAULT);
-        LarkAccessTokenProvider tokenProvider = config -> "tenant-token";
+                LarkClientRuntimeConfig.DEFAULT));
+        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),

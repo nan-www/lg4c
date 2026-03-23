@@ -16,9 +16,8 @@ import wn.gateway.domain.ConversationEvent;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.domain.MessageState;
+import wn.gateway.lark.DefaultLarkGatewayClientFactory;
 import wn.gateway.lark.LarkGatewayClient;
-import wn.gateway.lark.LarkGatewayClientFactory;
-import wn.gateway.record.ConversationRecorder;
 import wn.gateway.record.FileConversationRecorder;
 import wn.gateway.session.FileSessionStateStore;
 import wn.gateway.session.InMemoryPendingMessageStore;
@@ -33,13 +32,13 @@ public class GatewayDaemonService {
     ObjectMapper mapper;
 
     @Inject
-    LarkGatewayClientFactory larkGatewayClientFactory;
+    DefaultLarkGatewayClientFactory larkGatewayClientFactory;
 
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
         AccessPolicy accessPolicy = new AccessPolicy(config);
         FileSessionStateStore stateStore = new FileSessionStateStore(config.recordRoot().getParent().resolve("../state/sessions.json").normalize(), mapper);
-        ConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
+        FileConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
         InMemoryPendingMessageStore pendingStore = new InMemoryPendingMessageStore();
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
                 VTFactory.newVirtualThreadExecutor("conversation-dispatch"),
@@ -69,7 +68,7 @@ public class GatewayDaemonService {
     private void handleMessage(
             InboundMessage message,
             AccessPolicy accessPolicy,
-            ConversationRecorder recorder,
+            FileConversationRecorder recorder,
             SerialConversationDispatcher dispatcher,
             InMemoryPendingMessageStore pendingStore,
             ManagedCodexSessionManager sessionManager,

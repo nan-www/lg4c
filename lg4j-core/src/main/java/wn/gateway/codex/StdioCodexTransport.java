@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.ConversationKey;
 
-public class StdioCodexTransport implements CodexTransport {
+public class StdioCodexTransport {
     private static final String PROTOCOL_VERSION = "2024-11-05";
 
     private final StdioCodexProcessSupervisor supervisor;
@@ -34,7 +34,6 @@ public class StdioCodexTransport implements CodexTransport {
         this.mapper = mapper;
     }
 
-    @Override
     public synchronized CodexReply send(ConversationKey key, String existingThreadId, String prompt) {
         try {
             ensureInitialized();

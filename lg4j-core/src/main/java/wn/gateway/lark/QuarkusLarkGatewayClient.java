@@ -17,35 +17,22 @@ import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.Session;
+import lombok.RequiredArgsConstructor;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
-import wn.gateway.lark.auth.LarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
+import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
+@RequiredArgsConstructor
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
     private final LarkReplyApi replyApi;
-    private final LarkWebSocketConnector webSocketConnector;
-    private final LarkEndpointDiscoveryService endpointDiscoveryService;
-    private final LarkAccessTokenProvider accessTokenProvider;
+    private final DefaultLarkWebSocketConnector webSocketConnector;
+    private final DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
+    private final CachedLarkAccessTokenProvider accessTokenProvider;
     private volatile Session session;
-
-    public QuarkusLarkGatewayClient(
-            GatewayAppConfig config,
-            ObjectMapper mapper,
-            LarkReplyApi replyApi,
-            LarkWebSocketConnector webSocketConnector,
-            LarkEndpointDiscoveryService endpointDiscoveryService,
-            LarkAccessTokenProvider accessTokenProvider) {
-        this.config = config;
-        this.mapper = mapper;
-        this.replyApi = replyApi;
-        this.webSocketConnector = webSocketConnector;
-        this.endpointDiscoveryService = endpointDiscoveryService;
-        this.accessTokenProvider = accessTokenProvider;
-    }
 
     @Override
     public void start(Consumer<InboundMessage> messageConsumer) {

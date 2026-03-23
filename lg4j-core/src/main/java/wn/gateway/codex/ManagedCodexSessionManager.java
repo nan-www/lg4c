@@ -6,15 +6,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.ConversationKey;
 import wn.gateway.session.PendingMessage;
-import wn.gateway.session.PendingMessageStore;
+import wn.gateway.session.InMemoryPendingMessageStore;
 
 public class ManagedCodexSessionManager {
-    private final CodexProcessSupervisor supervisor;
-    private final CodexTransport transport;
-    private final PendingMessageStore pendingStore;
+    private final StdioCodexProcessSupervisor supervisor;
+    private final StdioCodexTransport transport;
+    private final InMemoryPendingMessageStore pendingStore;
     private final Map<String, String> threadIds = new ConcurrentHashMap<>();
 
-    public ManagedCodexSessionManager(CodexProcessSupervisor supervisor, CodexTransport transport, PendingMessageStore pendingStore) {
+    public ManagedCodexSessionManager(
+            StdioCodexProcessSupervisor supervisor,
+            StdioCodexTransport transport,
+            InMemoryPendingMessageStore pendingStore) {
         this.supervisor = supervisor;
         this.transport = transport;
         this.pendingStore = pendingStore;

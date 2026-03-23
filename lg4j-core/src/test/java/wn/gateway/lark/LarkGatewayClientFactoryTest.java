@@ -2,20 +2,18 @@ package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.config.GatewayAppConfig;
-import wn.gateway.lark.auth.LarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
-import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
+import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 
 class LarkGatewayClientFactoryTest {
 
@@ -23,12 +21,10 @@ class LarkGatewayClientFactoryTest {
     void factoryCreatesQuarkusWebSocketClient() {
         DefaultLarkGatewayClientFactory factory = new DefaultLarkGatewayClientFactory();
         factory.mapper = new ObjectMapper();
-        factory.replyApiFactory = config -> (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        factory.webSocketConnector = (websocketUrl, endpoint, endpointConfig) -> null;
-        factory.endpointDiscoveryService = config -> new LarkWsBootstrapResult(
-                "wss://open.feishu.test/ws",
-                LarkClientRuntimeConfig.DEFAULT);
-        factory.accessTokenProvider = config -> "tenant-token";
+        factory.replyApiFactory = mock(DefaultLarkReplyApiFactory.class);
+        factory.webSocketConnector = mock(DefaultLarkWebSocketConnector.class);
+        factory.endpointDiscoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        factory.accessTokenProvider = mock(CachedLarkAccessTokenProvider.class);
 
         GatewayAppConfig config = GatewayAppConfig.builder()
                 .codexCommand(List.of("codex"))

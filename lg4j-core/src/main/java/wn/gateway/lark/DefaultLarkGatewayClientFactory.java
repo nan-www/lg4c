@@ -5,23 +5,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
-import wn.gateway.lark.auth.LarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
+import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 
 @ApplicationScoped
-public class DefaultLarkGatewayClientFactory implements LarkGatewayClientFactory {
+public class DefaultLarkGatewayClientFactory {
     @Inject
     ObjectMapper mapper;
     @Inject
-    LarkReplyApiFactory replyApiFactory;
+    DefaultLarkReplyApiFactory replyApiFactory;
     @Inject
-    LarkWebSocketConnector webSocketConnector;
+    DefaultLarkWebSocketConnector webSocketConnector;
     @Inject
-    LarkEndpointDiscoveryService endpointDiscoveryService;
+    DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
     @Inject
-    LarkAccessTokenProvider accessTokenProvider;
+    CachedLarkAccessTokenProvider accessTokenProvider;
 
-    @Override
     public LarkGatewayClient create(GatewayAppConfig config) {
         return new QuarkusLarkGatewayClient(
                 config,

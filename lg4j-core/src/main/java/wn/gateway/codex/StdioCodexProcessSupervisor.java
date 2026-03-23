@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StdioCodexProcessSupervisor implements CodexProcessSupervisor {
+public class StdioCodexProcessSupervisor {
     private final List<String> command;
     private final Path workspaceRoot;
     private Process process;
@@ -15,7 +15,6 @@ public class StdioCodexProcessSupervisor implements CodexProcessSupervisor {
         this.workspaceRoot = workspaceRoot;
     }
 
-    @Override
     public synchronized void ensureStarted() {
         if (isAlive()) {
             return;
@@ -38,7 +37,6 @@ public class StdioCodexProcessSupervisor implements CodexProcessSupervisor {
         }
     }
 
-    @Override
     public synchronized boolean isAlive() {
         return process != null && process.isAlive();
     }

@@ -5,19 +5,14 @@ import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkEndpointDiscoveryService implements LarkEndpointDiscoveryService {
-    private final LarkEndpointDiscoveryApiFactory apiFactory;
+public class DefaultLarkEndpointDiscoveryService {
+    private final DefaultLarkEndpointDiscoveryApiFactory apiFactory;
 
     @Inject
-    public DefaultLarkEndpointDiscoveryService(LarkEndpointDiscoveryApiFactory apiFactory) {
+    public DefaultLarkEndpointDiscoveryService(DefaultLarkEndpointDiscoveryApiFactory apiFactory) {
         this.apiFactory = apiFactory;
     }
 
-    public static DefaultLarkEndpointDiscoveryService forTest(LarkEndpointDiscoveryApi api) {
-        return new DefaultLarkEndpointDiscoveryService(config -> api);
-    }
-
-    @Override
     public LarkWsBootstrapResult resolve(GatewayAppConfig config) {
         if (config.feishuWebsocketUrl() != null) {
             return new LarkWsBootstrapResult(config.feishuWebsocketUrl(), LarkClientRuntimeConfig.DEFAULT);

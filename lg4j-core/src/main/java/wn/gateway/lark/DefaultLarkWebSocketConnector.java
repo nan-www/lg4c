@@ -12,9 +12,8 @@ import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 
 @ApplicationScoped
-public class DefaultLarkWebSocketConnector implements LarkWebSocketConnector {
+public class DefaultLarkWebSocketConnector {
 
-    @Override
     public Session connect(String websocketUrl, Endpoint endpoint, ClientEndpointConfig endpointConfig)
             throws DeploymentException, IOException {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();

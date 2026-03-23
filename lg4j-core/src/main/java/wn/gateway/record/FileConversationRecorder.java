@@ -22,7 +22,7 @@ import wn.gateway.domain.MessageState;
 import wn.gateway.session.FileSessionStateStore;
 import wn.gateway.session.SessionSnapshot;
 
-public class FileConversationRecorder implements ConversationRecorder {
+public class FileConversationRecorder {
     private final Path recordRoot;
     private final FileSessionStateStore stateStore;
     private final ObjectMapper mapper;
@@ -34,7 +34,6 @@ public class FileConversationRecorder implements ConversationRecorder {
         this.mapper = mapper.copy().registerModule(new JavaTimeModule());
     }
 
-    @Override
     public void appendInbound(InboundMessage message) throws IOException {
         LocalDate date = LocalDate.ofInstant(message.eventTime(), ZoneOffset.UTC);
         conversationDates.put(message.conversationKey().value(), date);
@@ -47,7 +46,6 @@ public class FileConversationRecorder implements ConversationRecorder {
                 mapper.writeValueAsString(message)));
     }
 
-    @Override
     public void appendThinking(ConversationKey key, String messageId, List<String> thinkingChunks) throws IOException {
         appendMarkdown(key, """
                 ## Thinking
@@ -58,7 +56,6 @@ public class FileConversationRecorder implements ConversationRecorder {
                 mapper.writeValueAsString(thinkingChunks)));
     }
 
-    @Override
     public void appendAnswer(ConversationKey key, String messageId, CodexReply reply) throws IOException {
         appendMarkdown(key, """
                 ## Answer
@@ -69,13 +66,11 @@ public class FileConversationRecorder implements ConversationRecorder {
                 mapper.writeValueAsString(reply)));
     }
 
-    @Override
     public void appendEvent(ConversationEvent event) throws IOException {
         Path eventsFile = ensureConversationDir(event.conversationKey(), event.timestamp()).resolve("events.ndjson");
         appendLine(eventsFile, mapper.writeValueAsString(event));
     }
 
-    @Override
     public void saveSession(SessionSnapshot snapshot) throws IOException {
         stateStore.save(snapshot);
     }

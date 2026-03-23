@@ -1,6 +1,9 @@
 package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -10,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.auth.DefaultLarkTenantAccessTokenApiFactory;
 import wn.gateway.lark.auth.LarkTenantAccessTokenApi;
 import wn.gateway.lark.auth.LarkTenantAccessTokenResponse;
 
@@ -18,12 +22,15 @@ class CachedLarkAccessTokenProviderTest extends LarkTestSupport {
     @Test
     void cachesTokenUntilRefreshThreshold() {
         AtomicInteger calls = new AtomicInteger();
-        LarkTenantAccessTokenApi api = request -> {
+        LarkTenantAccessTokenApi api = mock(LarkTenantAccessTokenApi.class);
+        DefaultLarkTenantAccessTokenApiFactory apiFactory = mock(DefaultLarkTenantAccessTokenApiFactory.class);
+        when(apiFactory.create(any())).thenReturn(api);
+        when(api.fetch(any())).thenAnswer(invocation -> {
             int idx = calls.incrementAndGet();
             return new LarkTenantAccessTokenResponse(0, "ok", "token-" + idx, 7200);
-        };
+        });
         MutableClock clock = new MutableClock(Instant.parse("2026-03-23T00:00:00Z"));
-        CachedLarkAccessTokenProvider provider = CachedLarkAccessTokenProvider.forTest(api, clock, 60);
+        CachedLarkAccessTokenProvider provider = new CachedLarkAccessTokenProvider(apiFactory, clock, 60);
 
         String token1 = provider.getTenantAccessToken(config());
         String token2 = provider.getTenantAccessToken(config());

@@ -2,6 +2,11 @@ package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -10,25 +15,27 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import wn.gateway.lark.auth.LarkAccessTokenProvider;
+import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
     @Test
-    void startUsesDiscoveredWebsocketUrl() {
+    void startUsesDiscoveredWebsocketUrl() throws Exception {
         AtomicReference<String> connectedUrl = new AtomicReference<>();
-        LarkEndpointDiscoveryService discoveryService = config -> new LarkWsBootstrapResult(
+        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.cn/ws/discovered",
-                LarkClientRuntimeConfig.DEFAULT);
-        LarkAccessTokenProvider tokenProvider = config -> "tenant-token";
+                LarkClientRuntimeConfig.DEFAULT));
+        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        LarkWebSocketConnector connector = (websocketUrl, endpoint, endpointConfig) -> {
-            connectedUrl.set(websocketUrl);
+        DefaultLarkWebSocketConnector connector = mock(DefaultLarkWebSocketConnector.class);
+        doAnswer(invocation -> {
+            connectedUrl.set(invocation.getArgument(0, String.class));
             return null;
-        };
+        }).when(connector).connect(anyString(), any(), any());
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
@@ -55,13 +62,15 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
             request.set(payload);
             return replyFuture;
         };
+        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
+        when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                (websocketUrl, endpoint, endpointConfig) -> null,
-                config -> new LarkWsBootstrapResult("wss://ignored", LarkClientRuntimeConfig.DEFAULT),
-                config -> "tenant-token");
+                mock(DefaultLarkWebSocketConnector.class),
+                mock(DefaultLarkEndpointDiscoveryService.class),
+                tokenProvider);
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 

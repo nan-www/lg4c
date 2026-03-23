@@ -7,9 +7,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkEndpointDiscoveryApiFactory implements LarkEndpointDiscoveryApiFactory {
+public class DefaultLarkEndpointDiscoveryApiFactory {
 
-    @Override
     public LarkEndpointDiscoveryApi create(GatewayAppConfig config) {
         return QuarkusRestClientBuilder.newBuilder()
                 .baseUri(URI.create(config.larkEnvironment().baseUrl()))

@@ -7,9 +7,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkTenantAccessTokenApiFactory implements LarkTenantAccessTokenApiFactory {
+public class DefaultLarkTenantAccessTokenApiFactory {
 
-    @Override
     public LarkTenantAccessTokenApi create(GatewayAppConfig config) {
         return QuarkusRestClientBuilder.newBuilder()
                 .baseUri(URI.create(config.larkEnvironment().baseUrl()))

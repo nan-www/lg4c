@@ -1,10 +1,15 @@
 package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
-import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryApiFactory;
 import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryApi;
@@ -15,10 +20,8 @@ class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
 
     @Test
     void returnsConfiguredOverrideWithoutCallingApi() {
-        LarkEndpointDiscoveryApi api = request -> {
-            throw new AssertionError("api should not be called when websocket override is configured");
-        };
-        DefaultLarkEndpointDiscoveryService service = DefaultLarkEndpointDiscoveryService.forTest(api);
+        DefaultLarkEndpointDiscoveryApiFactory apiFactory = mock(DefaultLarkEndpointDiscoveryApiFactory.class);
+        DefaultLarkEndpointDiscoveryService service = new DefaultLarkEndpointDiscoveryService(apiFactory);
 
         LarkWsBootstrapResult result = service.resolve(configBuilder()
                 .feishuWebsocketUrl("wss://open.feishu.test/ws")
@@ -26,6 +29,7 @@ class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
 
         assertEquals("wss://open.feishu.test/ws", result.websocketUrl());
         assertEquals(LarkClientRuntimeConfig.DEFAULT, result.runtimeConfig());
+        verify(apiFactory, never()).create(any());
     }
 
     @Test
@@ -34,8 +38,11 @@ class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
         LarkEndpointDiscoveryResponse response = LarkEndpointDiscoveryResponse.success(
                 "wss://open.feishu.cn/ws/123",
                 runtimeConfig);
-        LarkEndpointDiscoveryApi api = request -> response;
-        DefaultLarkEndpointDiscoveryService service = DefaultLarkEndpointDiscoveryService.forTest(api);
+        LarkEndpointDiscoveryApi api = mock(LarkEndpointDiscoveryApi.class);
+        DefaultLarkEndpointDiscoveryApiFactory apiFactory = mock(DefaultLarkEndpointDiscoveryApiFactory.class);
+        when(apiFactory.create(any())).thenReturn(api);
+        when(api.discover(any())).thenReturn(response);
+        DefaultLarkEndpointDiscoveryService service = new DefaultLarkEndpointDiscoveryService(apiFactory);
 
         LarkWsBootstrapResult result = service.resolve(config());
 
