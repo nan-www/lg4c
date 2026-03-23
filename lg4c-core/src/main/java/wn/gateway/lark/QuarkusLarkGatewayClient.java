@@ -18,6 +18,7 @@ import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.Session;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
@@ -26,6 +27,7 @@ import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
 import wn.gateway.lark.dto.LarkReplyRequest;
 
 @RequiredArgsConstructor
+@Slf4j
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final GatewayAppConfig config;
     private final ObjectMapper mapper;
@@ -102,6 +104,7 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                     } catch (IOException e) {
                         throw new IllegalStateException("failed to parse feishu event", e);
                     } finally {
+                        log.debug("Recive msg: {}", buffer);
                         buffer.setLength(0);
                     }
                 }
