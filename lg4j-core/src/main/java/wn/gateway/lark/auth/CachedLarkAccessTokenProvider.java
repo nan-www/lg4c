@@ -2,6 +2,8 @@ package wn.gateway.lark.auth;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -32,13 +34,13 @@ public class CachedLarkAccessTokenProvider {
     public String getTenantAccessToken(GatewayAppConfig config) {
         CachedToken snapshot = cachedToken;
         Instant now = clock.instant();
-        if (snapshot != null && snapshot.expiresAt().isAfter(now.plusSeconds(refreshSkewSeconds))) {
+        if (snapshot != null && snapshot.canUse(now.plusSeconds(refreshSkewSeconds))) {
             return snapshot.token();
         }
         synchronized (this) {
             snapshot = cachedToken;
             now = clock.instant();
-            if (snapshot != null && snapshot.expiresAt().isAfter(now.plusSeconds(refreshSkewSeconds))) {
+            if (snapshot != null && snapshot.canUse(now.plusSeconds(refreshSkewSeconds))) {
                 return snapshot.token();
             }
             LarkTenantAccessTokenResponse response = apiFactory.create(config)
@@ -57,5 +59,8 @@ public class CachedLarkAccessTokenProvider {
     }
 
     private record CachedToken(String token, Instant expiresAt) {
+        public boolean canUse(Instant expiresAt){
+            return this.expiresAt.isAfter(expiresAt);
+        }
     }
 }
