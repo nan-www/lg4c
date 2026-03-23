@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
@@ -25,7 +25,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
     @Test
     void startUsesDiscoveredWebsocketUrl() throws Exception {
         AtomicReference<String> connectedUrl = new AtomicReference<>();
-        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        LarkEndpointDiscoveryService discoveryService = mock(LarkEndpointDiscoveryService.class);
         when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.cn/ws/discovered",
                 LarkClientRuntimeConfig.DEFAULT));
@@ -69,7 +69,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                 new ObjectMapper(),
                 replyApi,
                 mock(LarkWebSocketConnector.class),
-                mock(DefaultLarkEndpointDiscoveryService.class),
+                mock(LarkEndpointDiscoveryService.class),
                 tokenProvider);
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");

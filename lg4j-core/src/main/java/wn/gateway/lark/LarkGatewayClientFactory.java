@@ -6,7 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 
 @ApplicationScoped
 public class LarkGatewayClientFactory {
@@ -17,7 +17,7 @@ public class LarkGatewayClientFactory {
     @Inject
     LarkWebSocketConnector webSocketConnector;
     @Inject
-    DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
+    LarkEndpointDiscoveryService endpointDiscoveryService;
     @Inject
     CachedLarkAccessTokenProvider accessTokenProvider;
 

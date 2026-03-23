@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 
 class LarkGatewayClientFactoryTest {
 
@@ -23,7 +23,7 @@ class LarkGatewayClientFactoryTest {
         factory.mapper = new ObjectMapper();
         factory.replyApiFactory = mock(LarkReplyApiFactory.class);
         factory.webSocketConnector = mock(LarkWebSocketConnector.class);
-        factory.endpointDiscoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        factory.endpointDiscoveryService = mock(LarkEndpointDiscoveryService.class);
         factory.accessTokenProvider = mock(CachedLarkAccessTokenProvider.class);
 
         GatewayAppConfig config = GatewayAppConfig.builder()

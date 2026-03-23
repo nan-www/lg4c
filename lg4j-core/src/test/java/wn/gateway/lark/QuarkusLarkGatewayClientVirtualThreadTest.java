@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
@@ -31,7 +31,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             return replyFuture;
         };
         LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
-        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        LarkEndpointDiscoveryService discoveryService = mock(LarkEndpointDiscoveryService.class);
         when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.test/ws",
                 LarkClientRuntimeConfig.DEFAULT));
@@ -61,7 +61,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             connectThread.set(Thread.currentThread());
             return null;
         }).when(connector).connect(anyString(), any(), any());
-        DefaultLarkEndpointDiscoveryService discoveryService = mock(DefaultLarkEndpointDiscoveryService.class);
+        LarkEndpointDiscoveryService discoveryService = mock(LarkEndpointDiscoveryService.class);
         when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
                 "wss://open.feishu.test/ws",
                 LarkClientRuntimeConfig.DEFAULT));

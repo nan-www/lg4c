@@ -9,8 +9,8 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryApiFactory;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryApiFactory;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryApi;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryResponse;
@@ -20,8 +20,8 @@ class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
 
     @Test
     void returnsConfiguredOverrideWithoutCallingApi() {
-        DefaultLarkEndpointDiscoveryApiFactory apiFactory = mock(DefaultLarkEndpointDiscoveryApiFactory.class);
-        DefaultLarkEndpointDiscoveryService service = new DefaultLarkEndpointDiscoveryService(apiFactory);
+        LarkEndpointDiscoveryApiFactory apiFactory = mock(LarkEndpointDiscoveryApiFactory.class);
+        LarkEndpointDiscoveryService service = new LarkEndpointDiscoveryService(apiFactory);
 
         LarkWsBootstrapResult result = service.resolve(configBuilder()
                 .feishuWebsocketUrl("wss://open.feishu.test/ws")
@@ -39,10 +39,10 @@ class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
                 "wss://open.feishu.cn/ws/123",
                 runtimeConfig);
         LarkEndpointDiscoveryApi api = mock(LarkEndpointDiscoveryApi.class);
-        DefaultLarkEndpointDiscoveryApiFactory apiFactory = mock(DefaultLarkEndpointDiscoveryApiFactory.class);
+        LarkEndpointDiscoveryApiFactory apiFactory = mock(LarkEndpointDiscoveryApiFactory.class);
         when(apiFactory.create(any())).thenReturn(api);
         when(api.discover(any())).thenReturn(response);
-        DefaultLarkEndpointDiscoveryService service = new DefaultLarkEndpointDiscoveryService(apiFactory);
+        LarkEndpointDiscoveryService service = new LarkEndpointDiscoveryService(apiFactory);
 
         LarkWsBootstrapResult result = service.resolve(config());
 

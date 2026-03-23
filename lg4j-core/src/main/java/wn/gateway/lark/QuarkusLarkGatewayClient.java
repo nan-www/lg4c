@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.DefaultLarkEndpointDiscoveryService;
+import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
 
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private final ObjectMapper mapper;
     private final LarkReplyApi replyApi;
     private final LarkWebSocketConnector webSocketConnector;
-    private final DefaultLarkEndpointDiscoveryService endpointDiscoveryService;
+    private final LarkEndpointDiscoveryService endpointDiscoveryService;
     private final CachedLarkAccessTokenProvider accessTokenProvider;
     private volatile Session session;
 

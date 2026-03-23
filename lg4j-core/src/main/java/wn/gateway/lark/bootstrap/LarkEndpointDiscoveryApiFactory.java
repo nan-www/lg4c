@@ -1,4 +1,4 @@
-package wn.gateway.lark.auth;
+package wn.gateway.lark.bootstrap;
 
 import java.net.URI;
 
@@ -7,11 +7,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkTenantAccessTokenApiFactory {
+public class LarkEndpointDiscoveryApiFactory {
 
-    public LarkTenantAccessTokenApi create(GatewayAppConfig config) {
+    public LarkEndpointDiscoveryApi create(GatewayAppConfig config) {
         return QuarkusRestClientBuilder.newBuilder()
                 .baseUri(URI.create(config.larkEnvironment().baseUrl()))
-                .build(LarkTenantAccessTokenApi.class);
+                .build(LarkEndpointDiscoveryApi.class);
     }
 }

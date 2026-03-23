@@ -5,11 +5,11 @@ import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
-public class DefaultLarkEndpointDiscoveryService {
-    private final DefaultLarkEndpointDiscoveryApiFactory apiFactory;
+public class LarkEndpointDiscoveryService {
+    private final LarkEndpointDiscoveryApiFactory apiFactory;
 
     @Inject
-    public DefaultLarkEndpointDiscoveryService(DefaultLarkEndpointDiscoveryApiFactory apiFactory) {
+    public LarkEndpointDiscoveryService(LarkEndpointDiscoveryApiFactory apiFactory) {
         this.apiFactory = apiFactory;
     }
 

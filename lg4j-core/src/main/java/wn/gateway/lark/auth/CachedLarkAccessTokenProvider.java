@@ -9,19 +9,19 @@ import wn.gateway.config.GatewayAppConfig;
 
 @ApplicationScoped
 public class CachedLarkAccessTokenProvider {
-    private final DefaultLarkTenantAccessTokenApiFactory apiFactory;
+    private final LarkTenantAccessTokenApiFactory apiFactory;
     private final Clock clock;
     private final int refreshSkewSeconds;
 
     private volatile CachedToken cachedToken;
 
     @Inject
-    public CachedLarkAccessTokenProvider(DefaultLarkTenantAccessTokenApiFactory apiFactory) {
+    public CachedLarkAccessTokenProvider(LarkTenantAccessTokenApiFactory apiFactory) {
         this(apiFactory, Clock.systemUTC(), 60);
     }
 
     public CachedLarkAccessTokenProvider(
-            DefaultLarkTenantAccessTokenApiFactory apiFactory,
+            LarkTenantAccessTokenApiFactory apiFactory,
             Clock clock,
             int refreshSkewSeconds) {
         this.apiFactory = apiFactory;

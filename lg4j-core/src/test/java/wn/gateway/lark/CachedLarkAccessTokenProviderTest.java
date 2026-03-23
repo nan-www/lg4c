@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.auth.DefaultLarkTenantAccessTokenApiFactory;
+import wn.gateway.lark.auth.LarkTenantAccessTokenApiFactory;
 import wn.gateway.lark.auth.LarkTenantAccessTokenApi;
 import wn.gateway.lark.auth.LarkTenantAccessTokenResponse;
 
@@ -23,7 +23,7 @@ class CachedLarkAccessTokenProviderTest extends LarkTestSupport {
     void cachesTokenUntilRefreshThreshold() {
         AtomicInteger calls = new AtomicInteger();
         LarkTenantAccessTokenApi api = mock(LarkTenantAccessTokenApi.class);
-        DefaultLarkTenantAccessTokenApiFactory apiFactory = mock(DefaultLarkTenantAccessTokenApiFactory.class);
+        LarkTenantAccessTokenApiFactory apiFactory = mock(LarkTenantAccessTokenApiFactory.class);
         when(apiFactory.create(any())).thenReturn(api);
         when(api.fetch(any())).thenAnswer(invocation -> {
             int idx = calls.incrementAndGet();
