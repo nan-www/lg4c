@@ -1,4 +1,4 @@
-package wn.gateway.lark;
+package wn.gateway.lark.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

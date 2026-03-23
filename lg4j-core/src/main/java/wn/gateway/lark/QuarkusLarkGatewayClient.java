@@ -22,7 +22,8 @@ import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
-import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
+import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
+import wn.gateway.lark.dto.LarkReplyRequest;
 
 @RequiredArgsConstructor
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {

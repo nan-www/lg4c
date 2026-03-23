@@ -1,4 +1,4 @@
-package wn.gateway.lark.bootstrap;
+package wn.gateway.lark.bootstrap.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

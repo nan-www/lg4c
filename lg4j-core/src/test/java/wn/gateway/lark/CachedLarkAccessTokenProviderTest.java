@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.auth.LarkTenantAccessTokenApiFactory;
 import wn.gateway.lark.auth.LarkTenantAccessTokenApi;
-import wn.gateway.lark.auth.LarkTenantAccessTokenResponse;
+import wn.gateway.lark.auth.dto.LarkTenantAccessTokenResponse;
 
 class CachedLarkAccessTokenProviderTest extends LarkTestSupport {
 

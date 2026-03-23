@@ -3,6 +3,9 @@ package wn.gateway.lark.bootstrap;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.lark.bootstrap.dto.LarkEndpointDiscoveryRequest;
+import wn.gateway.lark.bootstrap.dto.LarkEndpointDiscoveryResponse;
+import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
 
 @ApplicationScoped
 public class LarkEndpointDiscoveryService {

@@ -9,6 +9,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import wn.gateway.lark.dto.LarkReplyRequest;
 
 @Path("/open-apis/im/v1/messages/{messageId}/reply")
 @Consumes(MediaType.APPLICATION_JSON)

@@ -2,12 +2,12 @@ package wn.gateway.lark.auth;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
+import wn.gateway.lark.auth.dto.LarkTenantAccessTokenRequest;
+import wn.gateway.lark.auth.dto.LarkTenantAccessTokenResponse;
 
 @ApplicationScoped
 public class CachedLarkAccessTokenProvider {

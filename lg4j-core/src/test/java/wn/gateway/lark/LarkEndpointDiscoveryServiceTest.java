@@ -13,8 +13,8 @@ import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryApiFactory;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryApi;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryResponse;
-import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
+import wn.gateway.lark.bootstrap.dto.LarkEndpointDiscoveryResponse;
+import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
 
 class LarkEndpointDiscoveryServiceTest extends LarkTestSupport {
 

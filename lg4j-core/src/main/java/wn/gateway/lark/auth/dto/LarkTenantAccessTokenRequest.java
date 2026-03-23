@@ -1,4 +1,4 @@
-package wn.gateway.lark.auth;
+package wn.gateway.lark.auth.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

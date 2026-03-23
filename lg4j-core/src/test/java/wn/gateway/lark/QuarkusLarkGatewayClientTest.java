@@ -18,7 +18,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
-import wn.gateway.lark.bootstrap.LarkWsBootstrapResult;
+import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
+import wn.gateway.lark.dto.LarkReplyRequest;
 
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
