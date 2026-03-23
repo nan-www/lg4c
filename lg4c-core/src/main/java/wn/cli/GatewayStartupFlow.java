@@ -15,6 +15,8 @@ import wn.gateway.runtime.GatewayDaemonService;
 
 @ApplicationScoped
 public class GatewayStartupFlow {
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String START_BANNER_COLOR = "\u001B[38;2;183;230;163m";
     static final String START_BANNER = "Almost friday sir.";
 
     private final GatewayConfigStore store;
@@ -33,7 +35,7 @@ public class GatewayStartupFlow {
 
     public Integer run(GatewayLaunchOptions options) throws Exception {
         GatewayAppConfig config = store.exists(options.home) ? store.load(options.home) : bootstrap(options);
-        System.out.println(START_BANNER);
+        System.out.println(START_BANNER_COLOR + START_BANNER + ANSI_RESET);
         daemonService.run(config);
         return 0;
     }

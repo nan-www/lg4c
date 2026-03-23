@@ -30,6 +30,7 @@ import wn.gateway.config.GatewayConfigStore;
 import wn.gateway.runtime.GatewayDaemonService;
 
 class GatewayCommandTest {
+    private static final String COLORED_START_BANNER = "\u001B[38;2;183;230;163mAlmost friday sir.\u001B[0m";
 
     @TempDir
     Path tempDir;
@@ -52,7 +53,7 @@ class GatewayCommandTest {
         ExecutionResult result = executeMain(main, null, "--home", homeDir.toString());
 
         assertEquals(0, result.exitCode(), result.stdout() + result.stderr());
-        assertTrue(result.stdout().contains("Almost friday sir."));
+        assertTrue(result.stdout().contains(COLORED_START_BANNER));
         assertFalse(result.stdout().contains("Usage"));
         assertEquals(1, daemonService.invocations);
     }
