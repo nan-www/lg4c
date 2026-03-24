@@ -6,3 +6,5 @@ quarkus:
         enabled: true
   package:
     output-name: lg4c
+    jar:
+      add-runner-suffix: false
