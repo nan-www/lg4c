@@ -1,99 +1,93 @@
-# lg
+# lg4c
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+`lg4c` 是一个本地网关守护进程，用来把飞书消息事件接入本地 Codex 工作区。
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+运行时它主要负责三件事：
+- 通过官方 Lark SDK 接收飞书 `im.message.receive_v1` 事件
+- 把收到的消息转换成本地工作区里的处理任务
+- 通过现有的回复链路把处理结果回发到飞书
 
-## Running the application in dev mode
+主运行模块是 `lg4c-core`，`example` 模块里保留了官方 Lark SDK 的独立示例代码。
 
-You can run your application in dev mode that enables live coding using:
+## First Run
 
-```shell script
-./mvnw quarkus:dev
+`lg4c` 的本地配置默认保存在 `~/.lg4c/config/application.yml`。
+
+首次启动时，直接运行程序本身，不需要额外加 `daemon` 子命令。程序会交互式收集以下信息：
+- `APPID`
+- `APPSecret`
+- `WorkSpace`
+
+首次配置完成后，会自动写入本地配置并继续启动。
+
+如果你使用 native 可执行文件，常用命令如下：
+
+```bash
+./lg4c-core/target/lg4c
+./lg4c-core/target/lg4c daemon
+./lg4c-core/target/lg4c doctor
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+如果你使用 JAR 方式运行，常用命令如下：
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+```bash
+java -jar lg4c-core/target/quarkus-app/quarkus-run.jar
+java -jar lg4c-core/target/quarkus-app/quarkus-run.jar daemon
+java -jar lg4c-core/target/quarkus-app/quarkus-run.jar doctor
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+## Build
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+### Prerequisites
 
-If you want to build an _über-jar_, execute the following command:
+- JDK 25
+- 如果要构建本地可执行文件，需要提前安装 GraalVM `native-image`
+- 仓库已经自带 Maven Wrapper，不需要额外安装 Maven
 
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+### Run Tests
+
+```bash
+./mvnw -q -pl lg4c-core test
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+### Build JAR
 
-## Creating a native executable
+默认构建会生成 Quarkus fast-jar 目录，主业务 JAR 的名字已经调整为 `lg4c.jar`：
 
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
+```bash
+./mvnw -q -pl lg4c-core clean package -DskipTests
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+主要产物：
+- `lg4c-core/target/quarkus-app/quarkus-run.jar`
+- `lg4c-core/target/quarkus-app/app/lg4c.jar`
+- `lg4c-core/target/quarkus-app/lib/`
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+运行方式：
+
+```bash
+java -jar lg4c-core/target/quarkus-app/quarkus-run.jar doctor
 ```
 
-You can then execute your native executable with: `./target/lg-1.0.0-SNAPSHOT-runner`
+如果你需要单文件 uber-jar：
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Picocli ([guide](https://quarkus.io/guides/picocli)): Develop command line applications with Picocli
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- YAML Configuration ([guide](https://quarkus.io/guides/config-yaml)): Use YAML to configure your Quarkus application
-- Logging JSON ([guide](https://quarkus.io/guides/logging#json-logging)): Add JSON formatter for console logging
-- SmallRye Health ([guide](https://quarkus.io/guides/smallrye-health)): Monitor service health
-- MCP Server - STDIO ([guide](https://docs.quarkiverse.io/quarkus-mcp-server/dev/)): The STDIO transport the MCP server.
-
-## Provided Code
-
-### YAML Config
-
-Configure your application with YAML
-
-[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
-
-The Quarkus application configuration is located in `src/main/resources/application.yml`.
-
-### Picocli Example
-
-Hello and goodbye are civilization fundamentals. Let's not forget it with this example picocli application by changing the <code>command</code> and <code>parameters</code>.
-
-[Related guide section...](https://quarkus.io/guides/picocli#command-line-application-with-multiple-commands)
-
-Also for picocli applications the dev mode is supported. When running dev mode, the picocli application is executed and on press of the Enter key, is restarted.
-
-As picocli applications will often require arguments to be passed on the commandline, this is also possible in dev mode via:
-
-```shell script
-./mvnw quarkus:dev -Dquarkus.args='Quarky'
+```bash
+./mvnw -q -pl lg4c-core clean package -DskipTests -Dquarkus.package.jar.type=uber-jar
 ```
 
-### REST
+### Build Native Executable
 
-Easily start your REST Web Services
+构建本地可执行文件：
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+```bash
+./mvnw -q -pl lg4c-core package -Dnative -DskipTests
+```
 
-### SmallRye Health
+主要产物：
+- `lg4c-core/target/lg4c`
 
-Monitor your application's health using SmallRye Health
+运行方式：
 
-[Related guide section...](https://quarkus.io/guides/smallrye-health)
+```bash
+./lg4c-core/target/lg4c doctor
+```
