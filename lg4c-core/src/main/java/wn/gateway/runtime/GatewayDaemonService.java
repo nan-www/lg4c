@@ -73,10 +73,10 @@ public class GatewayDaemonService {
             InMemoryPendingMessageStore pendingStore,
             ManagedCodexSessionManager sessionManager,
             LarkGatewayClient larkClient) {
-        if (!accessPolicy.isAllowed(message)) {
-            larkClient.sendReply(message, "Access denied by lg4c whitelist.");
-            return;
-        }
+//        if (!accessPolicy.isAllowed(message)) {
+//            larkClient.sendReply(message, "Access denied by lg4c whitelist.");
+//            return;
+//        }
 
         dispatcher.dispatch(message.conversationKey(), () -> {
             try {
