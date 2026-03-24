@@ -2,8 +2,6 @@ package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,9 +13,6 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
-import wn.gateway.lark.bootstrap.LarkClientRuntimeConfig;
-import wn.gateway.lark.bootstrap.dto.LarkWsBootstrapResult;
 
 class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
 
@@ -30,19 +25,13 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             apiThread.set(Thread.currentThread());
             return replyFuture;
         };
-        LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
-        LarkEndpointDiscoveryService discoveryService = mock(LarkEndpointDiscoveryService.class);
-        when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
-                "wss://open.feishu.test/ws",
-                LarkClientRuntimeConfig.DEFAULT));
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                connector,
-                discoveryService,
+                mock(OfficialLarkSdkLongConnectionFactory.class),
                 tokenProvider);
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -52,32 +41,42 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
     }
 
     @Test
-    void websocketConnectRunsOnCallerThread() throws Exception {
+    void sdkConnectionStartRunsOnCallerThread() {
         Thread callerThread = Thread.currentThread();
-        AtomicReference<Thread> connectThread = new AtomicReference<>();
-        LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        LarkWebSocketConnector connector = mock(LarkWebSocketConnector.class);
-        doAnswer(invocation -> {
-            connectThread.set(Thread.currentThread());
-            return null;
-        }).when(connector).connect(anyString(), any(), any());
-        LarkEndpointDiscoveryService discoveryService = mock(LarkEndpointDiscoveryService.class);
-        when(discoveryService.resolve(any())).thenReturn(new LarkWsBootstrapResult(
-                "wss://open.feishu.test/ws",
-                LarkClientRuntimeConfig.DEFAULT));
-        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
+        AtomicReference<Thread> createThread = new AtomicReference<>();
+        AtomicReference<Thread> startThread = new AtomicReference<>();
+
+        OfficialLarkSdkLongConnectionFactory sdkFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
+        when(sdkFactory.create(any(), any())).thenAnswer(invocation -> {
+            createThread.set(Thread.currentThread());
+            return new LarkSdkLongConnection() {
+                @Override
+                public void start() {
+                    startThread.set(Thread.currentThread());
+                }
+
+                @Override
+                public boolean isConnected() {
+                    return true;
+                }
+
+                @Override
+                public void close() {
+                }
+            };
+        });
+
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
-                replyApi,
-                connector,
-                discoveryService,
-                tokenProvider);
+                (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                sdkFactory,
+                mock(CachedLarkAccessTokenProvider.class));
 
         client.start(message -> {
         });
 
-        assertSame(callerThread, connectThread.get());
-        client.close();
+        assertSame(callerThread, createThread.get());
+        assertSame(callerThread, startThread.get());
     }
 }

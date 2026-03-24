@@ -45,6 +45,6 @@ public record LarkWsProtoFrame(
         return new LarkWsProtoFrame(seqId, logId, service, method, nextHeaders, payloadEncoding, payloadType, payload, logIdNew);
     }
 
-    record Header(String key, String value) {
+    public record Header(String key, String value) {
     }
 }

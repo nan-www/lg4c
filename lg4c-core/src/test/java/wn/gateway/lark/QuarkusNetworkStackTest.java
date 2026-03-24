@@ -31,9 +31,9 @@ class QuarkusNetworkStackTest {
         assertTrue(
                 pom.contains("<artifactId>quarkus-rest-client-jackson</artifactId>"),
                 "quarkus rest client should back outbound http calls");
-        assertFalse(
+        assertTrue(
                 pom.contains("<groupId>com.larksuite.oapi</groupId>"),
-                "lg4c-core must not depend on the official lark sdk");
+                "lg4c-core should depend on the official lark sdk for long connections");
     }
 
     private boolean containsJdkHttpClientImport(Path path) {

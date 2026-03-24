@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 
 class LarkGatewayClientFactoryTest {
 
@@ -22,8 +21,7 @@ class LarkGatewayClientFactoryTest {
         LarkGatewayClientFactory factory = new LarkGatewayClientFactory();
         factory.mapper = new ObjectMapper();
         factory.replyApiFactory = mock(LarkReplyApiFactory.class);
-        factory.webSocketConnector = mock(LarkWebSocketConnector.class);
-        factory.endpointDiscoveryService = mock(LarkEndpointDiscoveryService.class);
+        factory.sdkLongConnectionFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
         factory.accessTokenProvider = mock(CachedLarkAccessTokenProvider.class);
 
         GatewayAppConfig config = GatewayAppConfig.builder()
@@ -33,7 +31,6 @@ class LarkGatewayClientFactoryTest {
                 .agentTemplate("agent")
                 .feishuAppId("app-id")
                 .feishuAppSecret("app-secret")
-                .feishuWebsocketUrl("wss://open.feishu.test/ws")
                 .feishuReplyUrl("https://open.feishu.test/reply")
                 .allowedUsers(List.of("ou_1"))
                 .allowedChats(List.of("oc_1"))

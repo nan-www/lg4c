@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.bootstrap.LarkEndpointDiscoveryService;
 
 @ApplicationScoped
 public class LarkGatewayClientFactory {
@@ -15,9 +14,7 @@ public class LarkGatewayClientFactory {
     @Inject
     LarkReplyApiFactory replyApiFactory;
     @Inject
-    LarkWebSocketConnector webSocketConnector;
-    @Inject
-    LarkEndpointDiscoveryService endpointDiscoveryService;
+    OfficialLarkSdkLongConnectionFactory sdkLongConnectionFactory;
     @Inject
     CachedLarkAccessTokenProvider accessTokenProvider;
 
@@ -26,8 +23,7 @@ public class LarkGatewayClientFactory {
                 config,
                 mapper,
                 replyApiFactory.create(config),
-                webSocketConnector,
-                endpointDiscoveryService,
+                sdkLongConnectionFactory,
                 accessTokenProvider);
     }
 }
