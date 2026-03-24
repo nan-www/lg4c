@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
+import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import picocli.CommandLine.Command;
@@ -13,6 +14,7 @@ import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.config.GatewayConfigStore;
 
 @Dependent
+@Unremovable
 @Command(name = "doctor", description = "Check local lg4c dependencies")
 public class GatewayDoctorCommand implements Callable<Integer> {
 

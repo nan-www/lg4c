@@ -1,0 +1,114 @@
+[
+  {
+    "name": "com.lark.oapi.core.request.EventReq"
+  },
+  {
+    "name": "com.lark.oapi.event.model.BaseEventV2",
+    "fields": [
+      { "name": "header" },
+      { "name": "schema" }
+    ]
+  },
+  {
+    "name": "com.lark.oapi.event.model.Event",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.lark.oapi.event.model.Fuzzy",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.event.model.Header",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.EventMessage",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.EventSender",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.MentionEvent",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.P2MessageReceiveV1",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.P2MessageReceiveV1Data",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.service.im.v1.model.UserId",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.lark.oapi.ws.Client",
+    "fields": [
+      { "name": "autoReconnect" },
+      { "name": "executor" }
+    ],
+    "methods": [
+      {
+        "name": "disconnect",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$ConfigDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$GatewayDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$CodexDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$WorkspaceDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$RecordDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$AgentDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$LarkDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$AccessDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "wn.gateway.config.GatewayConfigStore$LoggingDocument",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true
+  }
+]

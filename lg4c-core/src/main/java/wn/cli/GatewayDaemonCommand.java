@@ -2,12 +2,14 @@ package wn.cli;
 
 import java.util.concurrent.Callable;
 
+import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 
 @Dependent
+@Unremovable
 @Command(name = "daemon", description = "Run lg4c as a local daemon")
 public class GatewayDaemonCommand implements Callable<Integer> {
     @Inject

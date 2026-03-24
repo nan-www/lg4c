@@ -1,9 +1,11 @@
 package wn;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import io.quarkus.arc.Unremovable;
 import wn.cli.GatewayDaemonCommand;
 import wn.cli.GatewayDoctorCommand;
 import wn.cli.GatewayStartupFlow;
@@ -30,5 +32,15 @@ class GatewayCdiWiringTest {
         assertNotNull(bootstrapService);
         assertNotNull(daemonService);
         assertNotNull(startupFlow);
+    }
+
+    @Test
+    void picocliSubcommandsAreMarkedUnremovableForNative() {
+        assertTrue(
+                GatewayDaemonCommand.class.isAnnotationPresent(Unremovable.class),
+                "GatewayDaemonCommand must survive native bean removal");
+        assertTrue(
+                GatewayDoctorCommand.class.isAnnotationPresent(Unremovable.class),
+                "GatewayDoctorCommand must survive native bean removal");
     }
 }
