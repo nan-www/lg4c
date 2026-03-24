@@ -25,7 +25,7 @@ public class Sample {
             })
             .build();
     static void main(String[] args) {
-        Client cli = new Client.Builder("YOUR_APP_ID", "YOUR_APP_SECRET")
+        Client cli = new Client.Builder("cli_a920dc2c01f81cc9", "Wkje2rlnE3db9XQ1noBa2fym68nVVVW4")
                 .eventHandler(EVENT_HANDLER)
                 .build();
         cli.start();

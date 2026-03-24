@@ -104,7 +104,6 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                     } catch (IOException e) {
                         throw new IllegalStateException("failed to parse feishu event", e);
                     } finally {
-                        log.debug("Recive msg: {}", buffer);
                         buffer.setLength(0);
                     }
                 }
