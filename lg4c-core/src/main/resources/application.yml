@@ -3,7 +3,8 @@ quarkus:
     level: INFO
     console:
       json:
-        enabled: true
+        enabled: false
+      stderr: true
   package:
     output-name: lg4c
     jar:
