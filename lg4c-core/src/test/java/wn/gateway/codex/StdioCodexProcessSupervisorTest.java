@@ -5,14 +5,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import wn.gateway.domain.CodexReply;
 
 class StdioCodexProcessSupervisorTest {
+
+    @Test
+    void wakeupCodexMCP() throws IOException {
+        List<String> command = List.of("codex");
+        Path tempDir = Files.createTempDirectory("codex-supervisor-test");
+        Path workspace = Files.createDirectories(tempDir.resolve("workspace"));
+        StdioCodexProcessSupervisor supervisor = new StdioCodexProcessSupervisor(command, workspace);
+        supervisor.ensureStarted();
+        StdioCodexTransport transport = new StdioCodexTransport(supervisor, new ObjectMapper());
+        CodexReply resp = transport.send(null, "", "你所处的目录的全路径是什么？");
+        IO.println(resp);
+        supervisor.process().destroy();
+    }
 
     @Test
     void startsCodexMcpServerInWorkspaceDirectoryWithoutChangingCommandArguments() throws Exception {
