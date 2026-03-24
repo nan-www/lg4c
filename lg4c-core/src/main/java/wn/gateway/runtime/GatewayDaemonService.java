@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import wn.gateway.access.AccessPolicy;
 import wn.gateway.codex.ManagedCodexSessionManager;
 import wn.gateway.codex.StdioCodexProcessSupervisor;
@@ -27,6 +28,7 @@ import wn.gateway.session.SessionSnapshot;
 import wn.gateway.util.VTFactory;
 
 @ApplicationScoped
+@Slf4j
 public class GatewayDaemonService {
     @Inject
     ObjectMapper mapper;
@@ -79,6 +81,7 @@ public class GatewayDaemonService {
 //        }
 
         dispatcher.dispatch(message.conversationKey(), () -> {
+            log.info("Received msg: {}", message);
             try {
                 recorder.appendInbound(message);
                 pendingStore.save(new PendingMessage(message.conversationKey(), message.messageId(), message.text(), MessageState.SENT_TO_CODEX, message.eventTime()));
