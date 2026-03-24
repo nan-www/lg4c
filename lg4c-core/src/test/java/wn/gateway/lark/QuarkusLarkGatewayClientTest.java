@@ -3,77 +3,73 @@ package wn.gateway.lark;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.event.EventDispatcher;
+import com.lark.oapi.ws.Client;
 
-import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.dto.LarkReplyRequest;
 
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
     @Test
-    void startBuildsSdkConnectionAndBridgesRawEventPayload() throws Exception {
-        AtomicBoolean started = new AtomicBoolean();
-        AtomicReference<GatewayAppConfig> capturedConfig = new AtomicReference<>();
-        AtomicReference<Consumer<byte[]>> rawEventConsumer = new AtomicReference<>();
+    void startBuildsOfficialSdkClientAndBridgesTypedEventPayload() throws Exception {
         AtomicReference<wn.gateway.domain.InboundMessage> received = new AtomicReference<>();
-
-        LarkSdkLongConnection connection = new LarkSdkLongConnection() {
-            @Override
-            public void start() {
-                started.set(true);
-            }
-
-            @Override
-            public boolean isConnected() {
-                return started.get();
-            }
-
-            @Override
-            public void close() {
-            }
-        };
-        OfficialLarkSdkLongConnectionFactory sdkFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
-        when(sdkFactory.create(any(), any())).thenAnswer(invocation -> {
-            capturedConfig.set(invocation.getArgument(0, GatewayAppConfig.class));
-            rawEventConsumer.set(invocation.getArgument(1));
-            return connection;
-        });
+        AtomicReference<EventDispatcher> dispatcher = new AtomicReference<>();
+        Client sdkClient = mock(Client.class);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
-                new ObjectMapper(),
-                replyApi,
-                sdkFactory,
-                tokenProvider);
 
-        client.start(received::set);
+        try (MockedConstruction<Client.Builder> builderConstruction = mockConstruction(
+                Client.Builder.class,
+                (builder, context) -> {
+                    assertEquals("app-id", context.arguments().get(0));
+                    assertEquals("app-secret", context.arguments().get(1));
+                    when(builder.eventHandler(any(EventDispatcher.class))).thenAnswer(invocation -> {
+                        dispatcher.set(invocation.getArgument(0, EventDispatcher.class));
+                        return builder;
+                    });
+                    when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.build()).thenReturn(sdkClient);
+                })) {
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
+                    config(),
+                    new ObjectMapper(),
+                    replyApi,
+                    tokenProvider);
 
-        assertTrue(started.get());
-        assertEquals(config(), capturedConfig.get());
-        assertNotNull(rawEventConsumer.get());
+            client.start(received::set);
 
-        rawEventConsumer.get().accept(sampleEventPayload(new ObjectMapper()));
+            assertEquals(1, builderConstruction.constructed().size());
+            assertNotNull(dispatcher.get());
+            verify(sdkClient).start();
 
-        assertNotNull(received.get());
-        assertEquals("ou_event", received.get().userId());
-        assertEquals("oc_event", received.get().chatId());
-        assertEquals("om_event", received.get().messageId());
-        assertEquals("hello from lark", received.get().text());
+            try {
+                dispatcher.get().doWithoutValidation(sampleEventPayload(new ObjectMapper()));
+            } catch (Throwable throwable) {
+                throw new AssertionError("dispatcher should accept official sdk payloads", throwable);
+            }
+
+            assertNotNull(received.get());
+            assertEquals("ou_event", received.get().userId());
+            assertEquals("oc_event", received.get().chatId());
+            assertEquals("om_event", received.get().messageId());
+            assertEquals("hello from lark", received.get().text());
+        }
     }
 
     @Test
@@ -94,7 +90,6 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                mock(OfficialLarkSdkLongConnectionFactory.class),
                 tokenProvider);
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -107,41 +102,22 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
     }
 
     @Test
-    void closeDelegatesToSdkConnection() throws Exception {
-        AtomicBoolean closed = new AtomicBoolean();
-        OfficialLarkSdkLongConnectionFactory sdkFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
-        when(sdkFactory.create(any(), any())).thenReturn(new LarkSdkLongConnection() {
-            @Override
-            public void start() {
-            }
-
-            @Override
-            public boolean isConnected() {
-                return true;
-            }
-
-            @Override
-            public void close() {
-                closed.set(true);
-            }
-        });
+    void closeBeforeStartIsSafe() throws Exception {
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
                 config(),
                 new ObjectMapper(),
                 (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
-                sdkFactory,
                 mock(CachedLarkAccessTokenProvider.class));
 
-        client.start(message -> {
-        });
         client.close();
-
-        assertTrue(closed.get());
     }
 
     private byte[] sampleEventPayload(ObjectMapper mapper) throws Exception {
         var root = mapper.createObjectNode();
-        root.putObject("header").put("create_time", 1710000000000L);
+        root.put("schema", "2.0");
+        root.putObject("header")
+                .put("event_type", "im.message.receive_v1")
+                .put("create_time", "1710000000000");
         var event = root.putObject("event");
         event.putObject("sender")
                 .putObject("sender_id")

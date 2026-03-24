@@ -1,16 +1,23 @@
 package wn.gateway.lark;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.event.EventDispatcher;
+import com.lark.oapi.ws.Client;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 
@@ -31,7 +38,6 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
                 config(),
                 new ObjectMapper(),
                 replyApi,
-                mock(OfficialLarkSdkLongConnectionFactory.class),
                 tokenProvider);
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -45,36 +51,30 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> createThread = new AtomicReference<>();
         AtomicReference<Thread> startThread = new AtomicReference<>();
+        Client sdkClient = mock(Client.class);
+        try (MockedConstruction<Client.Builder> builderConstruction = mockConstruction(
+                Client.Builder.class,
+                (builder, context) -> {
+                    createThread.set(Thread.currentThread());
+                    when(builder.eventHandler(any(EventDispatcher.class))).thenReturn(builder);
+                    when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.build()).thenReturn(sdkClient);
+                })) {
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
+                    config(),
+                    new ObjectMapper(),
+                    (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                    mock(CachedLarkAccessTokenProvider.class));
+            doAnswer(invocation -> {
+                startThread.set(Thread.currentThread());
+                return null;
+            }).when(sdkClient).start();
 
-        OfficialLarkSdkLongConnectionFactory sdkFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
-        when(sdkFactory.create(any(), any())).thenAnswer(invocation -> {
-            createThread.set(Thread.currentThread());
-            return new LarkSdkLongConnection() {
-                @Override
-                public void start() {
-                    startThread.set(Thread.currentThread());
-                }
+            client.start(message -> {
+            });
 
-                @Override
-                public boolean isConnected() {
-                    return true;
-                }
-
-                @Override
-                public void close() {
-                }
-            };
-        });
-
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
-                new ObjectMapper(),
-                (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
-                sdkFactory,
-                mock(CachedLarkAccessTokenProvider.class));
-
-        client.start(message -> {
-        });
+            assertEquals(1, builderConstruction.constructed().size());
+        }
 
         assertSame(callerThread, createThread.get());
         assertSame(callerThread, startThread.get());

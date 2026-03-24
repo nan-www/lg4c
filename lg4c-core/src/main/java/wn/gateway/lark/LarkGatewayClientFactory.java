@@ -14,8 +14,6 @@ public class LarkGatewayClientFactory {
     @Inject
     LarkReplyApiFactory replyApiFactory;
     @Inject
-    OfficialLarkSdkLongConnectionFactory sdkLongConnectionFactory;
-    @Inject
     CachedLarkAccessTokenProvider accessTokenProvider;
 
     public LarkGatewayClient create(GatewayAppConfig config) {
@@ -23,7 +21,6 @@ public class LarkGatewayClientFactory {
                 config,
                 mapper,
                 replyApiFactory.create(config),
-                sdkLongConnectionFactory,
                 accessTokenProvider);
     }
 }

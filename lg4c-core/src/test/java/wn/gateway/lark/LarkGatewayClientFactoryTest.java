@@ -21,7 +21,6 @@ class LarkGatewayClientFactoryTest {
         LarkGatewayClientFactory factory = new LarkGatewayClientFactory();
         factory.mapper = new ObjectMapper();
         factory.replyApiFactory = mock(LarkReplyApiFactory.class);
-        factory.sdkLongConnectionFactory = mock(OfficialLarkSdkLongConnectionFactory.class);
         factory.accessTokenProvider = mock(CachedLarkAccessTokenProvider.class);
 
         GatewayAppConfig config = GatewayAppConfig.builder()
