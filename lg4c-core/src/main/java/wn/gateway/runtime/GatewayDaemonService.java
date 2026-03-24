@@ -36,12 +36,14 @@ public class GatewayDaemonService {
     @Inject
     LarkGatewayClientFactory larkGatewayClientFactory;
 
+    @Inject
+    InMemoryPendingMessageStore pendingStore;
+
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
         AccessPolicy accessPolicy = new AccessPolicy(config);
         FileSessionStateStore stateStore = new FileSessionStateStore(config.recordRoot().getParent().resolve("../state/sessions.json").normalize(), mapper);
         FileConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
-        InMemoryPendingMessageStore pendingStore = new InMemoryPendingMessageStore();
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
                 VTFactory.newVirtualThreadExecutor("conversation-dispatch"),
                 false);

@@ -5,8 +5,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import wn.gateway.domain.ConversationKey;
 
+@ApplicationScoped
 public class InMemoryPendingMessageStore {
     private final Map<String, PendingMessage> messages = new ConcurrentHashMap<>();
 
