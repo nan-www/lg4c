@@ -4,3 +4,5 @@ quarkus:
     console:
       json:
         enabled: true
+  package:
+    output-name: lg4c
