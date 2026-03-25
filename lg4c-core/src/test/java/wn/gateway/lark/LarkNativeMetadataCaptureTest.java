@@ -13,12 +13,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.core.httpclient.IHttpTransport;
 import com.lark.oapi.event.EventDispatcher;
 import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
 import com.lark.oapi.ws.Client;
 
 class LarkNativeMetadataCaptureTest extends LarkTestSupport {
+    private static final IHttpTransport NOOP_HTTP_TRANSPORT = rawRequest -> {
+        throw new AssertionError("messageClient transport should not be used in this test");
+    };
 
     @Test
     void eventDispatcherParsesMessageReceiveV1Payload() throws Throwable {
@@ -54,7 +58,7 @@ class LarkNativeMetadataCaptureTest extends LarkTestSupport {
                 .domain(config().larkEnvironment().baseUrl())
                 .eventHandler(dispatcher)
                 .build();
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), NOOP_HTTP_TRANSPORT);
         client.setConfig(config());
         setField(client, "sdkClient", sdkClient);
         setField(client, "started", Boolean.TRUE);

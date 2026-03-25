@@ -27,6 +27,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.lark.oapi.core.httpclient.IHttpTransport;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
 
@@ -38,6 +39,7 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private static final String METHOD_DISCONNECT = "disconnect";
 
     private final ObjectMapper mapper;
+    private final IHttpTransport httpTransport;
     private final Object messageClientLock = new Object();
     private volatile GatewayAppConfig config;
     private volatile com.lark.oapi.Client messageClient;
@@ -45,8 +47,13 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private volatile boolean started;
 
     @Inject
-    public QuarkusLarkGatewayClient(ObjectMapper mapper) {
+    public QuarkusLarkGatewayClient(ObjectMapper mapper, QuarkusVertxHttpTransport httpTransport) {
+        this(mapper, (IHttpTransport) httpTransport);
+    }
+
+    QuarkusLarkGatewayClient(ObjectMapper mapper, IHttpTransport httpTransport) {
         this.mapper = mapper;
+        this.httpTransport = httpTransport;
     }
 
     public void setConfig(GatewayAppConfig config) {
@@ -158,6 +165,7 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                 messageClient = com.lark.oapi.Client
                         .newBuilder(currentConfig.feishuAppId(), currentConfig.feishuAppSecret())
                         .openBaseUrl(currentConfig.larkEnvironment().baseUrl())
+                        .httpTransport(httpTransport)
                         .build();
             }
             return messageClient;

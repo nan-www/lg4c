@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.core.httpclient.IHttpTransport;
 import com.lark.oapi.event.EventDispatcher;
 import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
@@ -15,6 +16,10 @@ import com.lark.oapi.ws.Client;
 import wn.gateway.config.GatewayAppConfig;
 
 public final class LarkNativeMetadataMain {
+    private static final IHttpTransport NOOP_HTTP_TRANSPORT = rawRequest -> {
+        throw new IllegalStateException("messageClient transport should not be used in native metadata capture");
+    };
+
     private LarkNativeMetadataMain() {
     }
 
@@ -57,7 +62,7 @@ public final class LarkNativeMetadataMain {
                 .domain("https://open.feishu.cn")
                 .eventHandler(dispatcher)
                 .build();
-        QuarkusLarkGatewayClient gatewayClient = new QuarkusLarkGatewayClient(mapper);
+        QuarkusLarkGatewayClient gatewayClient = new QuarkusLarkGatewayClient(mapper, NOOP_HTTP_TRANSPORT);
         gatewayClient.setConfig(sampleConfig());
         setField(gatewayClient, "sdkClient", sdkClient);
         setField(gatewayClient, "started", Boolean.TRUE);

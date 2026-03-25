@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.core.httpclient.IHttpTransport;
 import com.lark.oapi.event.EventDispatcher;
 import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.V1;
@@ -26,6 +27,9 @@ import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
 class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
+    private static final IHttpTransport NOOP_HTTP_TRANSPORT = rawRequest -> {
+        throw new AssertionError("messageClient transport should not be used in this test");
+    };
 
     @Test
     void sendReplyDelegatesOnCallerThreadAndReturnsCompletedFuture() throws Exception {
@@ -36,6 +40,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
         V1 v1 = mock(V1.class);
         Message messageApi = mock(Message.class);
         CreateMessageResp response = mock(CreateMessageResp.class);
+        IHttpTransport customHttpTransport = mock(IHttpTransport.class);
 
         when(response.success()).thenReturn(true);
         when(messageClient.im()).thenReturn(imService);
@@ -49,9 +54,10 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
                 com.lark.oapi.Client.Builder.class,
                 (builder, context) -> {
                     when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.httpTransport(eq(customHttpTransport))).thenReturn(builder);
                     when(builder.build()).thenReturn(messageClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), customHttpTransport);
             client.setConfig(config());
 
             CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -76,7 +82,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
                     when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), NOOP_HTTP_TRANSPORT);
             client.setConfig(config());
             doAnswer(invocation -> {
                 startThread.set(Thread.currentThread());

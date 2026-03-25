@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lark.oapi.core.httpclient.IHttpTransport;
 import com.lark.oapi.event.EventDispatcher;
 import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.V1;
@@ -27,6 +28,9 @@ import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
+    private static final IHttpTransport NOOP_HTTP_TRANSPORT = rawRequest -> {
+        throw new AssertionError("messageClient transport should not be used in this test");
+    };
 
     @Test
     void startBuildsOfficialSdkClientAndBridgesTypedEventPayload() throws Exception {
@@ -46,7 +50,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                     when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), NOOP_HTTP_TRANSPORT);
             client.setConfig(config());
 
             client.start(received::set);
@@ -72,11 +76,13 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
     @Test
     void sendReplyUsesOfficialSdkCreateMessageApi() throws Exception {
         AtomicReference<CreateMessageReq> request = new AtomicReference<>();
+        AtomicReference<IHttpTransport> httpTransport = new AtomicReference<>();
         com.lark.oapi.Client messageClient = mock(com.lark.oapi.Client.class);
         ImService imService = mock(ImService.class);
         V1 v1 = mock(V1.class);
         Message messageApi = mock(Message.class);
         CreateMessageResp response = mock(CreateMessageResp.class);
+        IHttpTransport customHttpTransport = mock(IHttpTransport.class);
 
         when(response.success()).thenReturn(true);
         when(messageClient.im()).thenReturn(imService);
@@ -93,15 +99,20 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                     assertEquals("app-id", context.arguments().get(0));
                     assertEquals("app-secret", context.arguments().get(1));
                     when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.httpTransport(eq(customHttpTransport))).thenAnswer(invocation -> {
+                        httpTransport.set(invocation.getArgument(0, IHttpTransport.class));
+                        return builder;
+                    });
                     when(builder.build()).thenReturn(messageClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), customHttpTransport);
             client.setConfig(config());
 
             CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
             assertTrue(returned.isDone());
             returned.join();
+            assertNotNull(httpTransport.get());
             assertEquals("chat_id", request.get().getReceiveIdType());
             assertEquals("oc_1", request.get().getCreateMessageReqBody().getReceiveId());
             assertEquals("text", request.get().getCreateMessageReqBody().getMsgType());
@@ -111,7 +122,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
     @Test
     void closeBeforeStartIsSafe() throws Exception {
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper(), NOOP_HTTP_TRANSPORT);
 
         client.close();
     }
