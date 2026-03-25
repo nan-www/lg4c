@@ -34,11 +34,7 @@ public class QuarkusVertxHttpTransport implements IHttpTransport {
 
     @Inject
     public QuarkusVertxHttpTransport(Vertx vertx) {
-        this(WebClient.create(vertx));
-    }
-
-    QuarkusVertxHttpTransport(WebClient webClient) {
-        this.webClient = webClient;
+        this.webClient = WebClient.create(vertx);
     }
 
     @Override
