@@ -1,6 +1,7 @@
 package wn.gateway.runtime;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +43,10 @@ public class GatewayDaemonService {
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
         AccessPolicy accessPolicy = new AccessPolicy(config);
-        FileSessionStateStore stateStore = new FileSessionStateStore(config.recordRoot().getParent().resolve("../state/sessions.json").normalize(), mapper);
+        Path statePath = config.recordRoot().getParent().resolve("../state/sessions.json").normalize();
+        log.info("state path: {}", statePath);
+        FileSessionStateStore stateStore = new FileSessionStateStore(statePath, mapper);
+        log.info("Record path: {}", config.recordRoot());
         FileConversationRecorder recorder = new FileConversationRecorder(config.recordRoot(), stateStore, mapper);
         SerialConversationDispatcher dispatcher = new SerialConversationDispatcher(
                 VTFactory.newVirtualThreadExecutor("conversation-dispatch"),
