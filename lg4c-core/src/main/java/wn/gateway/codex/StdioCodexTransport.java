@@ -94,7 +94,7 @@ public class StdioCodexTransport {
         writer.write('\n');
         writer.flush();
 
-        long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+        long deadline = System.nanoTime() + Duration.ofSeconds(600).toNanos();
         while (System.nanoTime() < deadline) {
             String line = reader.readLine();
             if (line == null || line.isBlank()) {

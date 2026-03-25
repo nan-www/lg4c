@@ -35,7 +35,7 @@ public class GatewayStartupFlow {
 
     public Integer run(GatewayLaunchOptions options) throws Exception {
         GatewayAppConfig config = store.exists(options.home) ? store.load(options.home) : bootstrap(options);
-        System.out.println(START_BANNER_COLOR + START_BANNER + ANSI_RESET);
+//        System.out.println(START_BANNER_COLOR + START_BANNER + ANSI_RESET);
         daemonService.run(config);
         return 0;
     }

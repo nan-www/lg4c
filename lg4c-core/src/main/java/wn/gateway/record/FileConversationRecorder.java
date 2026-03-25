@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import lombok.extern.slf4j.Slf4j;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.ConversationEvent;
 import wn.gateway.domain.ConversationKey;
@@ -22,6 +23,7 @@ import wn.gateway.domain.MessageState;
 import wn.gateway.session.FileSessionStateStore;
 import wn.gateway.session.SessionSnapshot;
 
+@Slf4j
 public class FileConversationRecorder {
     private final Path recordRoot;
     private final FileSessionStateStore stateStore;
@@ -54,6 +56,7 @@ public class FileConversationRecorder {
                 """.formatted(String.join("\n", thinkingChunks)));
         appendEvent(new ConversationEvent(key, messageId, "thinking", Instant.now(), MessageState.SENT_TO_CODEX,
                 mapper.writeValueAsString(thinkingChunks)));
+        log.info("Thinking {} chunks for key {}", thinkingChunks.size(), key);
     }
 
     public void appendAnswer(ConversationKey key, String messageId, CodexReply reply) throws IOException {
@@ -64,6 +67,7 @@ public class FileConversationRecorder {
                 """.formatted(reply.finalAnswer()));
         appendEvent(new ConversationEvent(key, messageId, "answer", Instant.now(), MessageState.ANSWER_PERSISTED,
                 mapper.writeValueAsString(reply)));
+        log.info("Answer {} chunks for key {}", reply.finalAnswer().length(), key);
     }
 
     public void appendEvent(ConversationEvent event) throws IOException {

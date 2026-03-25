@@ -2,7 +2,7 @@ package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -19,10 +19,14 @@ import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lark.oapi.event.EventDispatcher;
+import com.lark.oapi.service.im.ImService;
+import com.lark.oapi.service.im.v1.V1;
+import com.lark.oapi.service.im.v1.model.CreateMessageReq;
+import com.lark.oapi.service.im.v1.model.CreateMessageResp;
+import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.dto.LarkReplyRequest;
 
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
@@ -75,34 +79,48 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
     }
 
     @Test
-    void sendReplyUsesBearerTokenAndUnderlyingFuture() {
-        CompletableFuture<Void> replyFuture = new CompletableFuture<>();
-        AtomicReference<String> authorization = new AtomicReference<>();
-        AtomicReference<String> messageId = new AtomicReference<>();
-        AtomicReference<LarkReplyRequest> request = new AtomicReference<>();
-        LarkReplyApi replyApi = (auth, msgId, payload) -> {
-            authorization.set(auth);
-            messageId.set(msgId);
-            request.set(payload);
-            return replyFuture;
-        };
+    void sendReplyUsesOfficialSdkCreateMessageApi() throws Exception {
+        AtomicReference<CreateMessageReq> request = new AtomicReference<>();
+        com.lark.oapi.Client messageClient = mock(com.lark.oapi.Client.class);
+        ImService imService = mock(ImService.class);
+        V1 v1 = mock(V1.class);
+        Message messageApi = mock(Message.class);
+        CreateMessageResp response = mock(CreateMessageResp.class);
+
+        when(response.success()).thenReturn(true);
+        when(messageClient.im()).thenReturn(imService);
+        when(imService.v1()).thenReturn(v1);
+        when(v1.message()).thenReturn(messageApi);
+        when(messageApi.create(any(CreateMessageReq.class))).thenAnswer(invocation -> {
+            request.set(invocation.getArgument(0, CreateMessageReq.class));
+            return response;
+        });
+
         LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        when(replyApiFactory.create(any())).thenReturn(replyApi);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
-        when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                new ObjectMapper(),
-                replyApiFactory,
-                tokenProvider);
-        client.setConfig(config());
+        try (MockedConstruction<com.lark.oapi.Client.Builder> ignored = mockConstruction(
+                com.lark.oapi.Client.Builder.class,
+                (builder, context) -> {
+                    assertEquals("app-id", context.arguments().get(0));
+                    assertEquals("app-secret", context.arguments().get(1));
+                    when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.build()).thenReturn(messageClient);
+                })) {
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
+                    new ObjectMapper(),
+                    replyApiFactory,
+                    tokenProvider);
+            client.setConfig(config());
 
-        CompletableFuture<Void> returned = client.sendReply(message(), "ok");
+            CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
-        assertSame(replyFuture, returned);
-        assertEquals("Bearer tenant-token", authorization.get());
-        assertEquals("om_1", messageId.get());
-        assertEquals("text", request.get().msgType());
-        assertEquals("{\"text\":\"ok\"}", request.get().content());
+            assertTrue(returned.isDone());
+            returned.join();
+            assertEquals("chat_id", request.get().getReceiveIdType());
+            assertEquals("oc_1", request.get().getCreateMessageReqBody().getReceiveId());
+            assertEquals("text", request.get().getCreateMessageReqBody().getMsgType());
+            assertEquals("{\"text\":\"ok\"}", request.get().getCreateMessageReqBody().getContent());
+        }
     }
 
     @Test

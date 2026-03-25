@@ -2,6 +2,7 @@ package wn.gateway.lark;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -17,6 +18,11 @@ import org.mockito.MockedConstruction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lark.oapi.event.EventDispatcher;
+import com.lark.oapi.service.im.ImService;
+import com.lark.oapi.service.im.v1.V1;
+import com.lark.oapi.service.im.v1.model.CreateMessageReq;
+import com.lark.oapi.service.im.v1.model.CreateMessageResp;
+import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
@@ -24,28 +30,43 @@ import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
 
     @Test
-    void sendReplyDelegatesOnCallerThreadAndReturnsUnderlyingFuture() {
+    void sendReplyDelegatesOnCallerThreadAndReturnsCompletedFuture() throws Exception {
         Thread callerThread = Thread.currentThread();
         AtomicReference<Thread> apiThread = new AtomicReference<>();
-        CompletableFuture<Void> replyFuture = new CompletableFuture<>();
-        LarkReplyApi replyApi = (authorization, messageId, request) -> {
+        com.lark.oapi.Client messageClient = mock(com.lark.oapi.Client.class);
+        ImService imService = mock(ImService.class);
+        V1 v1 = mock(V1.class);
+        Message messageApi = mock(Message.class);
+        CreateMessageResp response = mock(CreateMessageResp.class);
+
+        when(response.success()).thenReturn(true);
+        when(messageClient.im()).thenReturn(imService);
+        when(imService.v1()).thenReturn(v1);
+        when(v1.message()).thenReturn(messageApi);
+        when(messageApi.create(any(CreateMessageReq.class))).thenAnswer(invocation -> {
             apiThread.set(Thread.currentThread());
-            return replyFuture;
-        };
+            return response;
+        });
         LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        when(replyApiFactory.create(any())).thenReturn(replyApi);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
-        when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                new ObjectMapper(),
-                replyApiFactory,
-                tokenProvider);
-        client.setConfig(config());
+        try (MockedConstruction<com.lark.oapi.Client.Builder> ignored = mockConstruction(
+                com.lark.oapi.Client.Builder.class,
+                (builder, context) -> {
+                    when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
+                    when(builder.build()).thenReturn(messageClient);
+                })) {
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
+                    new ObjectMapper(),
+                    replyApiFactory,
+                    tokenProvider);
+            client.setConfig(config());
 
-        CompletableFuture<Void> returned = client.sendReply(message(), "ok");
+            CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
-        assertSame(callerThread, apiThread.get());
-        assertSame(replyFuture, returned);
+            assertSame(callerThread, apiThread.get());
+            assertTrue(returned.isDone());
+            returned.join();
+        }
     }
 
     @Test
