@@ -56,11 +56,12 @@ class LarkNativeMetadataCaptureTest extends LarkTestSupport {
                 .domain(config().larkEnvironment().baseUrl())
                 .eventHandler(dispatcher)
                 .build();
+        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
                 new ObjectMapper(),
-                (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                replyApiFactory,
                 mock(CachedLarkAccessTokenProvider.class));
+        client.setConfig(config());
         setField(client, "sdkClient", sdkClient);
         setField(client, "started", Boolean.TRUE);
 

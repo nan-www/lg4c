@@ -19,7 +19,8 @@ import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
 import com.lark.oapi.service.im.v1.model.UserId;
 import com.lark.oapi.ws.Client;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wn.gateway.config.GatewayAppConfig;
@@ -27,23 +28,40 @@ import wn.gateway.domain.InboundMessage;
 import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 import wn.gateway.lark.dto.LarkReplyRequest;
 
-@RequiredArgsConstructor
+@ApplicationScoped
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private static final Logger log = LoggerFactory.getLogger(QuarkusLarkGatewayClient.class);
     private static final String FIELD_EXECUTOR = "executor";
     private static final String FIELD_AUTO_RECONNECT = "autoReconnect";
     private static final String METHOD_DISCONNECT = "disconnect";
 
-    private final GatewayAppConfig config;
     private final ObjectMapper mapper;
-    private final LarkReplyApi replyApi;
+    private final LarkReplyApiFactory replyApiFactory;
     private final CachedLarkAccessTokenProvider accessTokenProvider;
+    private volatile GatewayAppConfig config;
+    private volatile LarkReplyApi replyApi;
     private volatile Client sdkClient;
     private volatile boolean started;
 
+    @Inject
+    public QuarkusLarkGatewayClient(
+            ObjectMapper mapper,
+            LarkReplyApiFactory replyApiFactory,
+            CachedLarkAccessTokenProvider accessTokenProvider) {
+        this.mapper = mapper;
+        this.replyApiFactory = replyApiFactory;
+        this.accessTokenProvider = accessTokenProvider;
+    }
+
+    public void setConfig(GatewayAppConfig config) {
+        this.config = config;
+        this.replyApi = replyApiFactory.create(config);
+    }
+
     @Override
     public void start(Consumer<InboundMessage> messageConsumer) {
-        if (config.feishuWebsocketUrl() != null) {
+        GatewayAppConfig currentConfig = requireConfig();
+        if (currentConfig.feishuWebsocketUrl() != null) {
             log.warn("feishu websocket override is ignored when using official lark sdk");
         }
 
@@ -55,8 +73,8 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                     }
                 })
                 .build();
-        Client client = new Client.Builder(config.feishuAppId(), config.feishuAppSecret())
-                .domain(config.larkEnvironment().baseUrl())
+        Client client = new Client.Builder(currentConfig.feishuAppId(), currentConfig.feishuAppSecret())
+                .domain(currentConfig.larkEnvironment().baseUrl())
                 .eventHandler(dispatcher)
                 .build();
         client.start();
@@ -66,9 +84,10 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
 
     @Override
     public CompletableFuture<Void> sendReply(InboundMessage message, String answer) {
-        String token = accessTokenProvider.getTenantAccessToken(config);
+        GatewayAppConfig currentConfig = requireConfig();
+        String token = accessTokenProvider.getTenantAccessToken(currentConfig);
         LarkReplyRequest payload = buildReply(message, answer);
-        return replyApi.sendReply("Bearer " + token, message.messageId(), payload).toCompletableFuture();
+        return requireReplyApi().sendReply("Bearer " + token, message.messageId(), payload).toCompletableFuture();
     }
 
     @Override
@@ -104,6 +123,22 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
                 message == null ? null : message.getCreateTime(),
                 event.getHeader() == null ? null : event.getHeader().getCreateTime());
         return new InboundMessage(userId, chatId, messageId, text, Instant.ofEpochMilli(epochMillis));
+    }
+
+    private GatewayAppConfig requireConfig() {
+        GatewayAppConfig currentConfig = config;
+        if (currentConfig == null) {
+            throw new IllegalStateException("lark client config has not been initialized");
+        }
+        return currentConfig;
+    }
+
+    private LarkReplyApi requireReplyApi() {
+        LarkReplyApi currentReplyApi = replyApi;
+        if (currentReplyApi == null) {
+            throw new IllegalStateException("lark reply api has not been initialized");
+        }
+        return currentReplyApi;
     }
 
     private String extractUserId(UserId senderId) {

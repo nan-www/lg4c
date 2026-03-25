@@ -64,11 +64,17 @@ public final class LarkNativeMetadataMain {
                 .domain("https://open.feishu.cn")
                 .eventHandler(dispatcher)
                 .build();
+        LarkReplyApiFactory replyApiFactory = new LarkReplyApiFactory() {
+            @Override
+            public LarkReplyApi create(GatewayAppConfig config) {
+                return (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
+            }
+        };
         QuarkusLarkGatewayClient gatewayClient = new QuarkusLarkGatewayClient(
-                sampleConfig(),
                 mapper,
-                (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                replyApiFactory,
                 fakeTokenProvider());
+        gatewayClient.setConfig(sampleConfig());
         setField(gatewayClient, "sdkClient", sdkClient);
         setField(gatewayClient, "started", Boolean.TRUE);
         gatewayClient.close();

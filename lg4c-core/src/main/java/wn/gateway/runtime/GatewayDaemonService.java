@@ -17,8 +17,8 @@ import wn.gateway.domain.ConversationEvent;
 import wn.gateway.domain.CodexReply;
 import wn.gateway.domain.InboundMessage;
 import wn.gateway.domain.MessageState;
-import wn.gateway.lark.LarkGatewayClientFactory;
 import wn.gateway.lark.LarkGatewayClient;
+import wn.gateway.lark.QuarkusLarkGatewayClient;
 import wn.gateway.record.FileConversationRecorder;
 import wn.gateway.session.FileSessionStateStore;
 import wn.gateway.session.InMemoryPendingMessageStore;
@@ -34,7 +34,7 @@ public class GatewayDaemonService {
     ObjectMapper mapper;
 
     @Inject
-    LarkGatewayClientFactory larkGatewayClientFactory;
+    QuarkusLarkGatewayClient larkGatewayClient;
 
     @Inject
     InMemoryPendingMessageStore pendingStore;
@@ -49,7 +49,8 @@ public class GatewayDaemonService {
                 false);
         StdioCodexProcessSupervisor supervisor = new StdioCodexProcessSupervisor(config.codexCommand(), config.workspaceRoot());
         ManagedCodexSessionManager sessionManager = new ManagedCodexSessionManager(supervisor, new StdioCodexTransport(supervisor, mapper), pendingStore);
-        LarkGatewayClient larkClient = larkGatewayClientFactory.create(config);
+        larkGatewayClient.setConfig(config);
+        LarkGatewayClient larkClient = larkGatewayClient;
 
         try {
             supervisor.ensureStarted();

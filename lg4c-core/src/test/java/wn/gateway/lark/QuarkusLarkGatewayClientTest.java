@@ -33,6 +33,8 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
         Client sdkClient = mock(Client.class);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
+        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
+        when(replyApiFactory.create(any())).thenReturn(replyApi);
 
         try (MockedConstruction<Client.Builder> builderConstruction = mockConstruction(
                 Client.Builder.class,
@@ -47,10 +49,10 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
             QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    config(),
                     new ObjectMapper(),
-                    replyApi,
+                    replyApiFactory,
                     tokenProvider);
+            client.setConfig(config());
 
             client.start(received::set);
 
@@ -84,13 +86,15 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
             request.set(payload);
             return replyFuture;
         };
+        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
+        when(replyApiFactory.create(any())).thenReturn(replyApi);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
                 new ObjectMapper(),
-                replyApi,
+                replyApiFactory,
                 tokenProvider);
+        client.setConfig(config());
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
@@ -104,9 +108,8 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
     @Test
     void closeBeforeStartIsSafe() throws Exception {
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
                 new ObjectMapper(),
-                (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                mock(LarkReplyApiFactory.class),
                 mock(CachedLarkAccessTokenProvider.class));
 
         client.close();

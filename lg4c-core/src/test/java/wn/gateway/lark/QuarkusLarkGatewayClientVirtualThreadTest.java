@@ -32,13 +32,15 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             apiThread.set(Thread.currentThread());
             return replyFuture;
         };
+        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
+        when(replyApiFactory.create(any())).thenReturn(replyApi);
         CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         when(tokenProvider.getTenantAccessToken(any())).thenReturn("tenant-token");
         QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                config(),
                 new ObjectMapper(),
-                replyApi,
+                replyApiFactory,
                 tokenProvider);
+        client.setConfig(config());
 
         CompletableFuture<Void> returned = client.sendReply(message(), "ok");
 
@@ -60,11 +62,12 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
                     when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
+            LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
             QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    config(),
                     new ObjectMapper(),
-                    (authorization, messageId, request) -> CompletableFuture.completedFuture(null),
+                    replyApiFactory,
                     mock(CachedLarkAccessTokenProvider.class));
+            client.setConfig(config());
             doAnswer(invocation -> {
                 startThread.set(Thread.currentThread());
                 return null;
