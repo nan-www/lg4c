@@ -43,7 +43,7 @@ public class GatewayDaemonService {
     public void run(GatewayAppConfig config) {
         GatewayRuntimeState.markLive(true);
         AccessPolicy accessPolicy = new AccessPolicy(config);
-        Path statePath = config.recordRoot().getParent().resolve("../state/sessions.json").normalize();
+        Path statePath = config.recordRoot().resolve("../state/sessions.json").normalize();
         log.info("state path: {}", statePath);
         FileSessionStateStore stateStore = new FileSessionStateStore(statePath, mapper);
         log.info("Record path: {}", config.recordRoot());
