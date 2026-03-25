@@ -3,9 +3,7 @@ package wn.gateway.lark;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,11 +13,6 @@ import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
 import com.lark.oapi.ws.Client;
 
 import wn.gateway.config.GatewayAppConfig;
-import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-import wn.gateway.lark.auth.LarkTenantAccessTokenApi;
-import wn.gateway.lark.auth.LarkTenantAccessTokenApiFactory;
-import wn.gateway.lark.auth.dto.LarkTenantAccessTokenRequest;
-import wn.gateway.lark.auth.dto.LarkTenantAccessTokenResponse;
 
 public final class LarkNativeMetadataMain {
     private LarkNativeMetadataMain() {
@@ -64,16 +57,7 @@ public final class LarkNativeMetadataMain {
                 .domain("https://open.feishu.cn")
                 .eventHandler(dispatcher)
                 .build();
-        LarkReplyApiFactory replyApiFactory = new LarkReplyApiFactory() {
-            @Override
-            public LarkReplyApi create(GatewayAppConfig config) {
-                return (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-            }
-        };
-        QuarkusLarkGatewayClient gatewayClient = new QuarkusLarkGatewayClient(
-                mapper,
-                replyApiFactory,
-                fakeTokenProvider());
+        QuarkusLarkGatewayClient gatewayClient = new QuarkusLarkGatewayClient(mapper);
         gatewayClient.setConfig(sampleConfig());
         setField(gatewayClient, "sdkClient", sdkClient);
         setField(gatewayClient, "started", Boolean.TRUE);
@@ -81,21 +65,6 @@ public final class LarkNativeMetadataMain {
         if (gatewayClient.isConnected()) {
             throw new IllegalStateException("gateway client should report disconnected after close");
         }
-    }
-
-    private static CachedLarkAccessTokenProvider fakeTokenProvider() {
-        LarkTenantAccessTokenApiFactory factory = new LarkTenantAccessTokenApiFactory() {
-            @Override
-            public LarkTenantAccessTokenApi create(GatewayAppConfig config) {
-                return new LarkTenantAccessTokenApi() {
-                    @Override
-                    public LarkTenantAccessTokenResponse fetch(LarkTenantAccessTokenRequest request) {
-                        return new LarkTenantAccessTokenResponse(0, "ok", "tenant-token", 7200);
-                    }
-                };
-            }
-        };
-        return new CachedLarkAccessTokenProvider(factory, Clock.systemUTC(), 60);
     }
 
     private static GatewayAppConfig sampleConfig() {

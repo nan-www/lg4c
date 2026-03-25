@@ -26,8 +26,6 @@ import com.lark.oapi.service.im.v1.model.CreateMessageResp;
 import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
-import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-
 class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
     @Test
@@ -35,10 +33,6 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
         AtomicReference<wn.gateway.domain.InboundMessage> received = new AtomicReference<>();
         AtomicReference<EventDispatcher> dispatcher = new AtomicReference<>();
         Client sdkClient = mock(Client.class);
-        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
-        LarkReplyApi replyApi = (authorization, messageId, request) -> CompletableFuture.completedFuture(null);
-        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        when(replyApiFactory.create(any())).thenReturn(replyApi);
 
         try (MockedConstruction<Client.Builder> builderConstruction = mockConstruction(
                 Client.Builder.class,
@@ -52,10 +46,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                     when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    new ObjectMapper(),
-                    replyApiFactory,
-                    tokenProvider);
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
             client.setConfig(config());
 
             client.start(received::set);
@@ -96,8 +87,6 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
             return response;
         });
 
-        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         try (MockedConstruction<com.lark.oapi.Client.Builder> ignored = mockConstruction(
                 com.lark.oapi.Client.Builder.class,
                 (builder, context) -> {
@@ -106,10 +95,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
                     when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(messageClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    new ObjectMapper(),
-                    replyApiFactory,
-                    tokenProvider);
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
             client.setConfig(config());
 
             CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -125,10 +111,7 @@ class QuarkusLarkGatewayClientTest extends LarkTestSupport {
 
     @Test
     void closeBeforeStartIsSafe() throws Exception {
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                new ObjectMapper(),
-                mock(LarkReplyApiFactory.class),
-                mock(CachedLarkAccessTokenProvider.class));
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
 
         client.close();
     }

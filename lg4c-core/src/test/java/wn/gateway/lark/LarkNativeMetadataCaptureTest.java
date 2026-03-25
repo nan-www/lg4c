@@ -18,8 +18,6 @@ import com.lark.oapi.service.im.ImService;
 import com.lark.oapi.service.im.v1.model.P2MessageReceiveV1;
 import com.lark.oapi.ws.Client;
 
-import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-
 class LarkNativeMetadataCaptureTest extends LarkTestSupport {
 
     @Test
@@ -56,11 +54,7 @@ class LarkNativeMetadataCaptureTest extends LarkTestSupport {
                 .domain(config().larkEnvironment().baseUrl())
                 .eventHandler(dispatcher)
                 .build();
-        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                new ObjectMapper(),
-                replyApiFactory,
-                mock(CachedLarkAccessTokenProvider.class));
+        QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
         client.setConfig(config());
         setField(client, "sdkClient", sdkClient);
         setField(client, "started", Boolean.TRUE);

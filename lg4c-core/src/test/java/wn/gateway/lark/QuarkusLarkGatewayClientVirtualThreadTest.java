@@ -25,8 +25,6 @@ import com.lark.oapi.service.im.v1.model.CreateMessageResp;
 import com.lark.oapi.service.im.v1.resource.Message;
 import com.lark.oapi.ws.Client;
 
-import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
-
 class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
 
     @Test
@@ -47,18 +45,13 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
             apiThread.set(Thread.currentThread());
             return response;
         });
-        LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-        CachedLarkAccessTokenProvider tokenProvider = mock(CachedLarkAccessTokenProvider.class);
         try (MockedConstruction<com.lark.oapi.Client.Builder> ignored = mockConstruction(
                 com.lark.oapi.Client.Builder.class,
                 (builder, context) -> {
                     when(builder.openBaseUrl(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(messageClient);
                 })) {
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    new ObjectMapper(),
-                    replyApiFactory,
-                    tokenProvider);
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
             client.setConfig(config());
 
             CompletableFuture<Void> returned = client.sendReply(message(), "ok");
@@ -83,11 +76,7 @@ class QuarkusLarkGatewayClientVirtualThreadTest extends LarkTestSupport {
                     when(builder.domain(eq(config().larkEnvironment().baseUrl()))).thenReturn(builder);
                     when(builder.build()).thenReturn(sdkClient);
                 })) {
-            LarkReplyApiFactory replyApiFactory = mock(LarkReplyApiFactory.class);
-            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(
-                    new ObjectMapper(),
-                    replyApiFactory,
-                    mock(CachedLarkAccessTokenProvider.class));
+            QuarkusLarkGatewayClient client = new QuarkusLarkGatewayClient(new ObjectMapper());
             client.setConfig(config());
             doAnswer(invocation -> {
                 startThread.set(Thread.currentThread());

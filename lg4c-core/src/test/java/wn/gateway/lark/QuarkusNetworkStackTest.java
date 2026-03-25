@@ -25,12 +25,12 @@ class QuarkusNetworkStackTest {
     }
 
     @Test
-    void pomIncludesQuarkusRestClientDependency() throws IOException {
+    void pomUsesOfficialLarkSdkOnlyForOutboundMessaging() throws IOException {
         String pom = Files.readString(Path.of("pom.xml"));
 
-        assertTrue(
+        assertFalse(
                 pom.contains("<artifactId>quarkus-rest-client-jackson</artifactId>"),
-                "quarkus rest client should back outbound http calls");
+                "manual rest client wiring should be removed after switching to the official lark sdk");
         assertTrue(
                 pom.contains("<groupId>com.larksuite.oapi</groupId>"),
                 "lg4c-core should depend on the official lark sdk for long connections");

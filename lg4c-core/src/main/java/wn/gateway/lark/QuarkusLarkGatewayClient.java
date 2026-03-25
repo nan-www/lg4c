@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.domain.InboundMessage;
-import wn.gateway.lark.auth.CachedLarkAccessTokenProvider;
 
 @ApplicationScoped
 public class QuarkusLarkGatewayClient implements LarkGatewayClient {
@@ -39,28 +38,23 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
     private static final String METHOD_DISCONNECT = "disconnect";
 
     private final ObjectMapper mapper;
+    private final Object messageClientLock = new Object();
     private volatile GatewayAppConfig config;
     private volatile com.lark.oapi.Client messageClient;
     private volatile Client sdkClient;
     private volatile boolean started;
 
     @Inject
-    public QuarkusLarkGatewayClient(
-            ObjectMapper mapper,
-            LarkReplyApiFactory replyApiFactory,
-            CachedLarkAccessTokenProvider accessTokenProvider) {
+    public QuarkusLarkGatewayClient(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
     public void setConfig(GatewayAppConfig config) {
         this.config = config;
+        this.messageClient = null;
         if (config.feishuReplyUrl() != null) {
             log.warn("feishu reply override is ignored when using official lark sdk");
         }
-        this.messageClient = com.lark.oapi.Client
-                .newBuilder(config.feishuAppId(), config.feishuAppSecret())
-                .openBaseUrl(config.larkEnvironment().baseUrl())
-                .build();
     }
 
     @Override
@@ -154,10 +148,20 @@ public class QuarkusLarkGatewayClient implements LarkGatewayClient {
 
     private com.lark.oapi.Client requireMessageClient() {
         com.lark.oapi.Client currentMessageClient = messageClient;
-        if (currentMessageClient == null) {
-            throw new IllegalStateException("lark message client has not been initialized");
+        if (currentMessageClient != null) {
+            return currentMessageClient;
         }
-        return currentMessageClient;
+
+        GatewayAppConfig currentConfig = requireConfig();
+        synchronized (messageClientLock) {
+            if (messageClient == null) {
+                messageClient = com.lark.oapi.Client
+                        .newBuilder(currentConfig.feishuAppId(), currentConfig.feishuAppSecret())
+                        .openBaseUrl(currentConfig.larkEnvironment().baseUrl())
+                        .build();
+            }
+            return messageClient;
+        }
     }
 
     private String extractUserId(UserId senderId) {
