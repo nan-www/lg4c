@@ -32,8 +32,8 @@
             <artifactId>quarkus-vertx</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-client</artifactId>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-mutiny-vertx-web-client</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>

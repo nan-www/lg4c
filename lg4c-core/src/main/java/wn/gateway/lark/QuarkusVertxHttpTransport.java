@@ -14,14 +14,14 @@ import com.lark.oapi.core.request.RawRequest;
 import com.lark.oapi.core.response.RawResponse;
 import com.lark.oapi.core.utils.Jsons;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.multipart.MultipartForm;
+import io.vertx.mutiny.core.MultiMap;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.buffer.Buffer;
+import io.vertx.mutiny.ext.web.client.HttpRequest;
+import io.vertx.mutiny.ext.web.client.HttpResponse;
+import io.vertx.mutiny.ext.web.client.WebClient;
+import io.vertx.mutiny.ext.web.multipart.MultipartForm;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -56,17 +56,14 @@ public class QuarkusVertxHttpTransport implements IHttpTransport {
     private HttpResponse<Buffer> send(HttpRequest<Buffer> request, RawRequest rawRequest) throws Exception {
         Object body = rawRequest.getBody();
         if (body == null) {
-            return request.send().toCompletionStage().toCompletableFuture().get();
+            return request.sendAndAwait();
         }
         if (body instanceof FormData formData) {
-            return request.sendMultipartForm(toMultipartForm(formData))
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .get();
+            return request.sendMultipartFormAndAwait(toMultipartForm(formData));
         }
         request.putHeader("content-type", JSON_CONTENT_TYPE);
-        Buffer jsonBody = Buffer.buffer(Jsons.LONG_TO_STR.toJson(body));
-        return request.sendBuffer(jsonBody).toCompletionStage().toCompletableFuture().get();
+        Buffer jsonBody = Buffer.buffer(serializer(rawRequest).toJson(body));
+        return request.sendBufferAndAwait(jsonBody);
     }
 
     private void applyHeaders(HttpRequest<Buffer> request, Map<String, List<String>> headers) {
@@ -96,6 +93,10 @@ public class QuarkusVertxHttpTransport implements IHttpTransport {
 
     private HttpMethod httpMethod(String method) {
         return HttpMethod.valueOf(method.toUpperCase(Locale.ROOT));
+    }
+
+    private com.google.gson.Gson serializer(RawRequest rawRequest) {
+        return rawRequest.isSupportLong2String() ? Jsons.LONG_TO_STR : Jsons.DEFAULT;
     }
 
     private MultipartForm toMultipartForm(FormData formData) {
