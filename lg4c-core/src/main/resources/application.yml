@@ -9,3 +9,8 @@ quarkus:
     output-name: lg4c
     jar:
       add-runner-suffix: false
+  native:
+    resources:
+      includes: META-INF/banner.txt
+  banner:
+    path: banner.txt
