@@ -5,11 +5,13 @@ import java.time.Instant;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.RequiredArgsConstructor;
 import wn.gateway.config.GatewayAppConfig;
 import wn.gateway.lark.auth.dto.LarkTenantAccessTokenRequest;
 import wn.gateway.lark.auth.dto.LarkTenantAccessTokenResponse;
 
 @ApplicationScoped
+@RequiredArgsConstructor
 public class CachedLarkAccessTokenProvider {
     private final LarkTenantAccessTokenApiFactory apiFactory;
     private final Clock clock;
@@ -20,15 +22,6 @@ public class CachedLarkAccessTokenProvider {
     @Inject
     public CachedLarkAccessTokenProvider(LarkTenantAccessTokenApiFactory apiFactory) {
         this(apiFactory, Clock.systemUTC(), 60);
-    }
-
-    public CachedLarkAccessTokenProvider(
-            LarkTenantAccessTokenApiFactory apiFactory,
-            Clock clock,
-            int refreshSkewSeconds) {
-        this.apiFactory = apiFactory;
-        this.clock = clock;
-        this.refreshSkewSeconds = refreshSkewSeconds;
     }
 
     public String getTenantAccessToken(GatewayAppConfig config) {
